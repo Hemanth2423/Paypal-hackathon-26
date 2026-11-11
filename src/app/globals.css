@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+/* Visual system tokens (Product.md §7). Use these only; no one-off colors. */
+@theme {
+  --color-navy: #142c8e;
+  --color-navy-deep: #0e1f6b;
+  --color-action: #0070e0;
+  --color-action-dark: #005ab4;
+  --color-accent: #ffd140;
+  --color-page: #f7f5f0;
+  --color-card: #ffffff;
+  --color-line: #dfe1e6;
+  --color-ink: #1a1a1a;
+  --color-muted: #5f6368;
+  --color-ok: #137333;
+  --color-ok-bg: #e6f4ea;
+  --color-warn: #8a5300;
+  --color-warn-bg: #fef3d6;
+  --color-bad: #b3261e;
+  --color-bad-bg: #fce8e6;
+
+  --font-sans: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 16px;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-action);
+  outline-offset: 2px;
+}
