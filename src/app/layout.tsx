@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import AnalystPanel from "@/components/AnalystPanel";
 import NavTabs from "@/components/NavTabs";
+import { dataSourceLabel } from "@/lib/run/gateway";
 import "./globals.css";
 
 const brand = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-brand" });
+
+// The banner names the data source from TRIAL_GATEWAY at request time, not build time.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "SecondMint",
@@ -22,9 +27,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <div role="note" className="bg-warn-bg text-warn">
-          <p className="mx-auto max-w-7xl px-6 py-2 text-sm font-medium">Sandbox data · simulated outcomes</p>
+          <p className="mx-auto max-w-7xl px-6 py-2 text-sm font-medium">{dataSourceLabel()}</p>
         </div>
         <main className="mx-auto max-w-7xl px-6 py-10">{children}</main>
+        <AnalystPanel />
       </body>
     </html>
   );

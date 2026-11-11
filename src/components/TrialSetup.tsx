@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Trial, TrialPreview } from "@/lib/trial";
+import TrialRun from "./TrialRun";
 
 const READINESS: { key: keyof Trial["readiness"]; label: string }[] = [
   { key: "consent", label: "Merchant consent and trial terms accepted" },
@@ -102,26 +103,7 @@ export default function TrialSetup() {
   const { trial: t, preview: p } = state;
   const missing = READINESS.filter((r) => !t.readiness[r.key]).map((r) => r.label);
 
-  if (t.status === "running")
-    return (
-      <section className="mx-auto max-w-[480px]">
-        <h1 className="text-center text-4xl font-light text-navy">Trial running</h1>
-        <p className="mt-3 text-center text-muted">Started {new Date(t.startedAt!).toLocaleString()}. Results are ready {p.power.resultsAfterDays} days after start.</p>
-        <div className={`${card} mt-8`}>
-          <p className="inline-flex rounded-full bg-ok-bg px-3 py-1 text-sm font-semibold text-ok">● Running</p>
-          <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
-            <div><dt className="text-muted">Route A · Current</dt><dd className="text-xl font-semibold">{p.groups.A.customers.toLocaleString()} customers</dd></div>
-            <div><dt className="text-muted">Route B · PayPal</dt><dd className="text-xl font-semibold">{p.groups.B.customers.toLocaleString()} customers</dd></div>
-            <div><dt className="text-muted">Trial length</dt><dd className="font-semibold">{t.lengthDays} days</dd></div>
-            <div><dt className="text-muted">Recovery window</dt><dd className="font-semibold">{t.recoveryWindowDays} days</dd></div>
-            <div><dt className="text-muted">Early stop</dt><dd className="font-semibold">{t.earlyStop.stopIfBWorse ? "If Route B is worse" : "Off"} · {t.earlyStop.maxComplaints} complaints</dd></div>
-            <div><dt className="text-muted">Assignment seed</dt><dd className="font-mono text-xs">{t.seed}</dd></div>
-          </dl>
-          <p className="mt-6 text-xs text-muted">Running the trial day by day is the next step (F4).</p>
-          <button onClick={discard} className={`${secondary} mt-4`}>Discard trial</button>
-        </div>
-      </section>
-    );
+  if (t.status === "running") return <TrialRun trial={t} preview={p} onDiscard={discard} />;
 
   return (
     <section className="mx-auto max-w-[480px]">

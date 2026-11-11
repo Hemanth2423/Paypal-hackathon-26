@@ -39,6 +39,7 @@ export type Invoice = {
   recoveredAmount: number;
   refundedAmount: number;
   netRecovered: number;
+  route?: "A" | "B"; // trial invoices only (sm_route)
 };
 
 export type Filters = { from?: string; to?: string; reason?: string; brand?: string; plan?: string };
@@ -51,7 +52,8 @@ export function loadCache(): SyncCache | null {
   return JSON.parse(readFileSync(CACHE_FILE, "utf8")) as SyncCache;
 }
 
-export function buildInvoices(txns: SyncedTransaction[], asOf: string): Invoice[] {
+// windowDays: the recovery window. The Diagnostic uses 14; a trial passes its own setting.
+export function buildInvoices(txns: SyncedTransaction[], asOf: string, windowDays = RECOVERY_WINDOW_DAYS): Invoice[] {
   const groups = new Map<string, SyncedTransaction[]>();
   for (const t of txns) {
     const id = t.custom.sm_invoice_id;
@@ -82,7 +84,7 @@ export function buildInvoices(txns: SyncedTransaction[], asOf: string): Invoice[
     const recoveredAmount = win ? amount : 0;
     const refundedAmount = winTxn?.refunded ? amount : 0;
     const billing = first.custom.sm_billing_date;
-    const inWindow = !win && Date.parse(billing) + RECOVERY_WINDOW_DAYS * DAY > asOfMs;
+    const inWindow = !win && Date.parse(billing) + windowDays * DAY > asOfMs;
     out.push({
       invoiceId,
       subscriptionId: first.custom.sm_subscription_id,
@@ -109,6 +111,7 @@ export function buildInvoices(txns: SyncedTransaction[], asOf: string): Invoice[
       recoveredAmount,
       refundedAmount,
       netRecovered: +(recoveredAmount - refundedAmount - excessFees).toFixed(2),
+      ...(first.custom.sm_route === "A" || first.custom.sm_route === "B" ? { route: first.custom.sm_route } : {}),
     });
   }
   return out.sort((a, b) => b.billingDate.localeCompare(a.billingDate) || a.invoiceId.localeCompare(b.invoiceId));
@@ -235,16 +238,17 @@ const esc = (v: unknown) => {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-export function toCsv(rows: Invoice[], exportedAt = new Date().toISOString()): string {
+// dataSource names where the rows came from: "braintree_sandbox", or "standin" for a stand-in trial run.
+export function toCsv(rows: Invoice[], exportedAt = new Date().toISOString(), dataSource = "braintree_sandbox"): string {
   const lines = rows.map((r) =>
     [
-      r.invoiceId, r.subscriptionId, r.customerId, r.planId, "current", r.merchantAccountId,
+      r.invoiceId, r.subscriptionId, r.customerId, r.planId, r.route ?? "current", r.merchantAccountId,
       r.amount.toFixed(2), r.currency, r.billingDate, r.attempts[0].attemptAt, r.attempts.map((a) => a.txnId).join(" "),
       r.cardBrand, r.cardType, r.cardLast4,
       r.firstCode, r.firstText, "", r.declineType, r.networkCategory,
       r.attempts.length, r.attempts[0].attemptAt, r.attempts[r.attempts.length - 1].attemptAt, r.retriesOverCap, r.excessFees.toFixed(2),
       r.status, r.recoveredAt ?? "", r.daysToRecover ?? "", r.recoveredAmount.toFixed(2), r.refundedAmount.toFixed(2), r.netRecovered.toFixed(2),
-      "", "braintree_sandbox", "true", exportedAt,
+      "", dataSource, "true", exportedAt,
     ].map(esc).join(","),
   );
   return "﻿" + [CSV_COLUMNS.join(","), ...lines].join("\r\n") + "\r\n";

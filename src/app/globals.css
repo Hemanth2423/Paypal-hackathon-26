@@ -32,3 +32,29 @@ body {
   outline: 3px solid var(--color-action);
   outline-offset: 2px;
 }
+
+/* One-page results PDF (browser print). The data-source banner prints; navigation and controls don't. */
+@media print {
+  @page {
+    size: letter;
+    margin: 12mm;
+  }
+  html {
+    font-size: 8.5px; /* every rem-based size shrinks with it, so the report fits one page */
+  }
+  body {
+    background: #fff;
+  }
+  header nav,
+  [data-analyst],
+  nextjs-portal {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  [data-print-card] {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+}

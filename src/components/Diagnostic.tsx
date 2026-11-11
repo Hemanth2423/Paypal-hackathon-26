@@ -81,6 +81,16 @@ export default function Diagnostic() {
   const [summary, setSummary] = useState<{ reasons: string[]; stake: string; source: string; note?: string } | null>(null);
   const [selected, setSelected] = useState<Invoice | null>(null);
 
+  // Starting filters from the URL, so links (e.g. from the AI analyst) open the matching filtered view.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const get = (k: string) => sp.get(k) || undefined;
+    const f: Filters = { from: get("from"), to: get("to"), reason: get("reason"), brand: get("brand"), plan: get("plan") };
+    if (Object.values(f).some(Boolean)) setFilters(f);
+    const t: TableFilter = { type: get("type"), status: get("status") };
+    if (Object.values(t).some(Boolean)) setTable(t);
+  }, []);
+
   const load = useCallback(async () => {
     setState((s) => (s.kind === "ok" ? s : { kind: "loading" }));
     try {

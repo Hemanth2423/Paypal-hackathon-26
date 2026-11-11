@@ -57,7 +57,7 @@ function searchIds(search: CallbackSearch, fn: (s: any) => void): Promise<string
   return new Promise((resolve, reject) => search(fn, (err, res) => (err ? reject(err) : resolve(res.ids ?? []))));
 }
 
-function streamAll<T>(stream: NodeJS.ReadableStream): Promise<T[]> {
+export function streamAll<T>(stream: NodeJS.ReadableStream): Promise<T[]> {
   return new Promise((resolve, reject) => {
     const out: T[] = [];
     stream.on("data", (x: T) => out.push(x));
@@ -66,7 +66,7 @@ function streamAll<T>(stream: NodeJS.ReadableStream): Promise<T[]> {
   });
 }
 
-function normalize(t: braintree.Transaction): SyncedTransaction {
+export function normalize(t: braintree.Transaction): SyncedTransaction {
   const cc = t.creditCard as (braintree.CreditCard & { debit?: string }) | undefined;
   return {
     id: t.id,

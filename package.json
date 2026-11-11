@@ -9,7 +9,10 @@
     "seed": "tsx scripts/seed.ts",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "smoke:f1": "tsx scripts/smoke-f1.ts"
+    "smoke:f1": "tsx scripts/smoke-f1.ts",
+    "sweep:f4": "tsx scripts/sweep-f4.ts",
+    "smoke:f4": "tsx scripts/smoke-f4.ts",
+    "guardrails:f6": "tsx scripts/guardrails-f6.ts"
   },
   "dependencies": {
     "ag-grid-community": "^36.3.0",

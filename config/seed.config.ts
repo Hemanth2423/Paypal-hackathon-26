@@ -28,7 +28,7 @@ export const seedConfig = {
   // Decline mix for first failures. Codes are Braintree processor response codes.
   // `retrySuccess` = chance each retry succeeds (outcome model; the sandbox itself decides by amount).
   declineMix: [
-    { code: 2001, weight: 0.4, retrySuccess: 0.18 }, // Insufficient funds (soft)
+    { code: 2001, weight: 0.4, retrySuccess: 0.09 }, // Insufficient funds (soft). Matches the trial model's Route A rate (trialModel below)
     { code: 2000, weight: 0.2, retrySuccess: 0.12 }, // Do not honor (soft)
     { code: 2046, weight: 0.14, retrySuccess: 0.1 }, // Declined (soft)
     { code: 2004, weight: 0.14, retrySuccess: 0 }, // Expired card (hard)
@@ -41,6 +41,24 @@ export const seedConfig = {
 
   // Share of recovered invoices later refunded.
   refundRate: 0.02,
+
+  // Trial simulation (F4). Every number here is an assumption, not a measurement, and the Results report says so.
+  // Odds depend only on the decline code, the day of the month and the failed retries so far: never on the route,
+  // so any difference between routes comes from when each one retries.
+  trialModel: {
+    seed: "secondmint-trial-model-1", // fixes which renewals fail on which day; the trial's own seed only splits routes
+    paydays: [1, 15], // days of the month when pay usually lands
+    // Insufficient funds (2001): odds of one retry clearing. Pay clears on the payday itself; the next days are no better
+    // than any other. Tuned with `npm run sweep:f4` so 16+ of 20 trials reach a verdict and Route A stays near the history.
+    insufficientFunds: { onPayday: 0.95, afterPayday: 0.1, afterPaydayDays: 2, otherDay: 0.1, decayPerFailedRetry: 0.6 },
+    // Other soft codes use declineMix[].retrySuccess on every retry, so their recovery matches the seeded history.
+    routeB: {
+      afterPaydayRetryDays: 2, // 2001: retry on the payday, then this many days later
+      insufficientFundsFallbackDays: [3, 7, 11], // 2001 with no payday inside the recovery window
+      networkRetryDays: [1, 2, 4, 7], // 3000: the outage is usually over by the next day
+      otherSoftRetryDays: [2, 5, 9, 13],
+    },
+  },
 } as const;
 
 export type SeedConfig = typeof seedConfig;

@@ -9,6 +9,7 @@ export const CUSTOM_FIELDS = [
   "sm_attempt_at",
   "sm_attempt_no",
   "sm_invoice_amount",
+  "sm_route", // trial attempts only (F4): Route A or B
 ] as const;
 
 const ENV_VARS = ["BRAINTREE_MERCHANT_ID", "BRAINTREE_PUBLIC_KEY", "BRAINTREE_PRIVATE_KEY"] as const;
