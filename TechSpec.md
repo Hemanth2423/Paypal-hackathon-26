@@ -74,6 +74,28 @@ How to read it:
 - **Storage:** `POST /api/trial` saves the draft trial. Assignment and balance are computed on read.
 - **Balance check:** compares the two routes on count, $, decline mix, and plan mix. A difference over 5 percentage points shows a warning.
 - **Start rule:** "Start" is also enforced on the server; the API refuses to start a trial while any readiness item is unchecked.
+- **Population:** all synced customers are assigned up front. Balance is checked on each route's last 90 days of soft-decline history. If any difference exceeds 5 pp, "Reshuffle groups" draws a new seed.
+
+#### Trial handoff (F3 → F4)
+F3 ends by saving `.data/trial.json` with `status: "running"`. F4 reads it and must not change any setting.
+```ts
+type Trial = {
+  id: string; seed: string; status: "draft" | "running";
+  lengthDays: number;          // enrollment period: failures in these days join the trial
+  recoveryWindowDays: number;  // follow each failure this long after its first failure
+  splitB: number;              // % of customers on Route B
+  earlyStop: { stopIfBWorse: boolean; maxComplaints: number };   // F4 enforces
+  readiness: { consent: boolean; dataScope: boolean; earlyStop: boolean; oneRoutePerInvoice: boolean };
+  createdAt: string; startedAt: string | null;
+};
+```
+- **Route of a customer:** `assignRoute(customerId, trial.seed, trial.splitB)` from `src/lib/trial.ts`. Don't reimplement it.
+- **Which failures join the trial:** soft declines only (`ruleFor(code).type === "soft"` from `src/lib/declines.ts`).
+- **API:**
+  - `GET /api/trial` returns the trial and its preview.
+  - `POST /api/trial` updates a draft (409 once running; `{ "reshuffle": true }` draws a new seed).
+  - `POST /api/trial/start` returns 400 with the `missing` items if readiness is incomplete.
+  - `DELETE /api/trial` discards the trial.
 
 ### F4. Run trial
 - **Simulated clock:** the engine advances day by day. Each day it creates that day's renewal failures for trial customers (same generator, new seed), then runs each route's policy for the invoices due that day.

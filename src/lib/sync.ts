@@ -39,7 +39,7 @@ export type SyncSummary = {
   historyEnd: string | null;
 };
 
-export type SyncCache = { summary: SyncSummary; transactions: SyncedTransaction[] };
+export type SyncCache = { summary: SyncSummary; customerIds: string[]; transactions: SyncedTransaction[] };
 
 export type SyncEvent =
   | { stage: "credentials" }
@@ -136,7 +136,7 @@ export async function syncFromBraintree(emit: (e: SyncEvent) => void): Promise<v
       historyEnd: billingDates[billingDates.length - 1] ?? null,
     };
     mkdirSync(".data", { recursive: true });
-    writeFileSync(CACHE_FILE, JSON.stringify({ summary, transactions } satisfies SyncCache));
+    writeFileSync(CACHE_FILE, JSON.stringify({ summary, customerIds: customerIds.sort(), transactions } satisfies SyncCache));
     emit({ stage: "done", summary });
   } catch (err) {
     const e = toConnectError(err);
