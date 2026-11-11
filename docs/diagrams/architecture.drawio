@@ -1,0 +1,112 @@
+<mxfile>
+  <diagram id="arch" name="Architecture">
+    <mxGraphModel dx="1600" dy="1080" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1640" pageHeight="960" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="SecondMint architecture: request flow from the merchant's screens to PayPal (Braintree) and AI" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#142C8E;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1100" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="browser" value="Merchant's browser · Next.js pages (user flow left to right)" style="swimlane;html=1;startSize=34;rounded=1;arcSize=4;fillColor=#F7F9FF;strokeColor=#142C8E;fontColor=#142C8E;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1560" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="server" value="Next.js server · Node runtime · hosted on Render" style="swimlane;html=1;startSize=34;rounded=1;arcSize=3;fillColor=#F7F5F0;strokeColor=#142C8E;fontColor=#142C8E;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="1560" height="440" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e-flow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#142C8E;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="scr-connect" target="scr-diag">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-flow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#142C8E;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="scr-diag" target="scr-trial">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-flow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#142C8E;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="scr-trial" target="scr-results">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e-connect" value="POST /api/connect&#xa;streams progress" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="scr-connect" target="srv-sync">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-diag" value="GET /api/diagnostic&#xa;+ CSV export" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.1463;entryY=0;" edge="1" parent="1" source="scr-diag" target="srv-metrics">
+          <mxGeometry x="-0.47" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-trial" value="POST /api/trial&#xa;run · pause" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="scr-trial" target="srv-trial">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-results" value="GET /api/results&#xa;+ print to PDF" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.8537;entryY=0;" edge="1" parent="1" source="scr-results" target="srv-metrics">
+          <mxGeometry x="-0.47" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-ask" value="POST /api/ask" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="scr-ai" target="srv-ai">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e-ai-metrics" value="tool calls&#xa;(same functions as UI)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6A4FB3;fontSize=11;labelBackgroundColor=#F7F5F0;exitX=0.3;exitY=1;entryX=1;entryY=0.5;" edge="1" parent="1" source="srv-ai" target="srv-metrics">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1344" y="550"/></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-ai-gemini" value="OpenAI-compatible API&#xa;results cached" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6A4FB3;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.7;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="srv-ai" target="ext-gemini">
+          <mxGeometry x="0.45" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-sync-bt" value="customer + transaction&#xa;search (read)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#C99A00;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.2143;entryY=0;" edge="1" parent="1" source="srv-sync" target="ext-bt">
+          <mxGeometry x="0.45" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-trial-bt" value="transaction.sale&#xa;per attempt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#C99A00;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;jumpStyle=arc;jumpSize=10;exitX=0;exitY=0.8;entryX=0.4732;entryY=0;" edge="1" parent="1" source="srv-trial" target="ext-bt">
+          <mxGeometry x="0.88" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="345" y="451"/></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-seed-bt" value="one-time seed" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#C99A00;dashed=1;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="ext-seed" target="ext-bt">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e-metrics-store" value="reads" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;fontSize=11;labelBackgroundColor=#F7F5F0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="srv-metrics" target="srv-store">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="scr-connect" value="F1 · Connect" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EEFB;strokeColor=#142C8E;fontColor=#142C8E;fontSize=14;fontStyle=1;" vertex="1" parent="browser">
+          <mxGeometry x="40" y="55" width="240" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="scr-diag" value="F2 · Leak Diagnostic" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EEFB;strokeColor=#142C8E;fontColor=#142C8E;fontSize=14;fontStyle=1;" vertex="1" parent="browser">
+          <mxGeometry x="330" y="55" width="240" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="scr-trial" value="F3–F4 · Trial&#xa;setup + run" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EEFB;strokeColor=#142C8E;fontColor=#142C8E;fontSize=14;fontStyle=1;" vertex="1" parent="browser">
+          <mxGeometry x="620" y="55" width="240" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="scr-results" value="F5 · Results report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EEFB;strokeColor=#142C8E;fontColor=#142C8E;fontSize=14;fontStyle=1;" vertex="1" parent="browser">
+          <mxGeometry x="910" y="55" width="240" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="scr-ai" value="F6 · AI analyst panel&#xa;(right rail on every screen)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#6A4FB3;fontColor=#3F2A84;fontSize=14;fontStyle=1;" vertex="1" parent="browser">
+          <mxGeometry x="1220" y="55" width="280" height="85" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="srv-sync" value="Sync&#xa;search · page 50 IDs · 4 at a time" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#142C8E;fontColor=#1A1A1A;fontSize=12;" vertex="1" parent="server">
+          <mxGeometry x="40" y="55" width="240" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="srv-trial" value="Trial engine&#xa;sticky assignment · simulated clock&#xa;Route A / Route B policies · outcome model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#142C8E;fontColor=#1A1A1A;fontSize=12;" vertex="1" parent="server">
+          <mxGeometry x="620" y="55" width="240" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="srv-ai" value="AI layer&#xa;tool calling · number checker&#xa;cache · template fallback" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6A4FB3;fontColor=#1A1A1A;fontSize=12;" vertex="1" parent="server">
+          <mxGeometry x="1220" y="55" width="280" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="srv-metrics" value="Metrics &amp; stats: aggregations · decline rules · power estimate · CI + p-value · verdict rules · CSV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#142C8E;fontColor=#1A1A1A;fontSize=12;" vertex="1" parent="server">
+          <mxGeometry x="330" y="190" width="820" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="srv-store" value="Local store · .data/*.json (rebuildable from Braintree)&#xa;sync cache · trial config · outcome ledger · written by Sync and Trial engine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFEFEF;strokeColor=#888888;dashed=1;fontColor=#1A1A1A;fontSize=12;" vertex="1" parent="server">
+          <mxGeometry x="330" y="320" width="820" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ext-bt" value="Braintree sandbox (PayPal)&#xa;merchant account ucb · Route A + Route B&#xa;vault · subscriptions · sale · settle · refund · search" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4CC;strokeColor=#C99A00;fontColor=#1A1A1A;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="830" width="560" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext-seed" value="scripts/seed.ts&#xa;demo merchant setup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C99A00;dashed=1;fontColor=#1A1A1A;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="845" width="240" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext-gemini" value="Gemini (free tier)&#xa;AI Studio key, no billing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#6A4FB3;fontColor=#1A1A1A;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="830" width="280" height="100" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
