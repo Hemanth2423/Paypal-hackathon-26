@@ -2,6 +2,7 @@
 // Smart Retries–style policy. A policy sees only the invoice's own history.
 
 import { seedConfig } from "../../../config/seed.config";
+import { getActivePolicy } from "../assumptions";
 import { ruleFor } from "../declines";
 import type { Route } from "../trial";
 import { dayOfMonth } from "./calendar";
@@ -10,14 +11,14 @@ export type AttemptView = { day: number; code: string; approved: boolean };
 export type History = { firstDay: number; attempts: AttemptView[] }; // attempts[0] is the failed renewal
 export type PolicyContext = { startDate: string; windowDays: number };
 
-const MAX_RETRIES = seedConfig.existingProcess.maxRetries; // both routes get the same number of tries
+const maxRetries = () => getActivePolicy().maxRetries; // both routes get the same number of tries
 const isHard = (code: string) => ruleFor(code).type === "hard";
 
 // Route A: every N days, M times, for every decline code (the trial excludes hard first declines before asking).
 function routeA(h: History, ctx: PolicyContext): number | null {
   const retriesDone = h.attempts.length - 1;
-  if (retriesDone >= MAX_RETRIES) return null;
-  const day = h.firstDay + seedConfig.existingProcess.retryEveryDays * (retriesDone + 1);
+  if (retriesDone >= maxRetries()) return null;
+  const day = h.firstDay + getActivePolicy().retryEveryDays * (retriesDone + 1);
   return day <= h.firstDay + ctx.windowDays ? day : null;
 }
 
@@ -43,7 +44,7 @@ function routeB(h: History, ctx: PolicyContext): number | null {
   const first = h.attempts[0];
   const last = h.attempts[h.attempts.length - 1];
   const retriesDone = h.attempts.length - 1;
-  if (isHard(last.code) || retriesDone >= MAX_RETRIES) return null;
+  if (isHard(last.code) || retriesDone >= maxRetries()) return null;
   const cap = ruleFor(first.code).retryCap;
   if (cap != null && retriesDone >= cap) return null;
   return plannedRetryDays(first.code, h.firstDay, ctx).find((d) => d > last.day) ?? null;

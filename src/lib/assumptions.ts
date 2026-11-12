@@ -65,3 +65,22 @@ export const activeAssumptions = () => active;
 export const setActiveAssumptions = (a: Partial<Assumptions> | undefined) => {
   active = clampAssumptions(a);
 };
+
+// The merchant's current retry schedule (Route A). Route B gets the same maximum number of tries.
+export type RetryPolicy = { retryEveryDays: number; maxRetries: number };
+export const DEFAULT_POLICY: RetryPolicy = { retryEveryDays: 3, maxRetries: 4 };
+export const POLICY_LIMITS = { retryEveryDays: { min: 1, max: 14 }, maxRetries: { min: 1, max: 8 } };
+
+export function clampPolicy(p: Partial<RetryPolicy> | undefined, base: RetryPolicy = DEFAULT_POLICY): RetryPolicy {
+  const c = (v: unknown, k: keyof RetryPolicy) => {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) ? Math.min(POLICY_LIMITS[k].max, Math.max(POLICY_LIMITS[k].min, n)) : base[k];
+  };
+  return { retryEveryDays: c(p?.retryEveryDays ?? base.retryEveryDays, "retryEveryDays"), maxRetries: c(p?.maxRetries ?? base.maxRetries, "maxRetries") };
+}
+
+let activePolicy: RetryPolicy = DEFAULT_POLICY;
+export const getActivePolicy = () => activePolicy;
+export const setActivePolicy = (p: Partial<RetryPolicy> | undefined) => {
+  activePolicy = clampPolicy(p);
+};

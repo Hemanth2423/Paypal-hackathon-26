@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Trial, TrialPreview } from "@/lib/trial";
-import { ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS, type Assumptions } from "@/lib/assumptions";
+import { ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS, DEFAULT_POLICY, type Assumptions } from "@/lib/assumptions";
 import TrialRun from "./TrialRun";
 
 const READINESS: { key: keyof Trial["readiness"]; label: string }[] = [
@@ -144,6 +144,22 @@ export default function TrialSetup() {
               <input type="range" min={10} max={90} step={5} value={t.splitB} onChange={(e) => update({ splitB: +e.target.value })} className="mt-2 w-full accent-[var(--color-action)]" aria-valuetext={`Route B ${t.splitB} percent`} />
               <span className="flex justify-between text-xs font-normal text-muted"><span>More on current process</span><span>More on PayPal</span></span>
             </label>
+            <fieldset className="grid gap-3 rounded-xl border border-line p-4">
+              <legend className="px-1 text-sm font-semibold">Your current retry policy (Route A)</legend>
+              <label className="flex items-center justify-between text-sm">
+                Retry every
+                <span className="flex items-center gap-1">
+                  <input type="number" min={1} max={14} className="w-20 rounded-lg border border-line bg-card px-2 py-1.5 text-right" value={t.policy?.retryEveryDays ?? DEFAULT_POLICY.retryEveryDays} onChange={(e) => update({ policy: { ...(t.policy ?? DEFAULT_POLICY), retryEveryDays: +e.target.value } })} /> days
+                </span>
+              </label>
+              <label className="flex items-center justify-between text-sm">
+                Maximum retries
+                <span className="flex items-center gap-1">
+                  <input type="number" min={1} max={8} className="w-20 rounded-lg border border-line bg-card px-2 py-1.5 text-right" value={t.policy?.maxRetries ?? DEFAULT_POLICY.maxRetries} onChange={(e) => update({ policy: { ...(t.policy ?? DEFAULT_POLICY), maxRetries: +e.target.value } })} /> tries
+                </span>
+              </label>
+              <p className="text-xs text-muted">Route B gets the same maximum number of tries. Want to compare policies first? Use <a href="/what-if" className="font-semibold text-action">What-if</a>; it doesn&apos;t change your trial.</p>
+            </fieldset>
             <fieldset className="grid gap-3 rounded-xl border border-line p-4">
               <legend className="px-1 text-sm font-semibold">Simulation assumptions</legend>
               <p className="text-xs text-muted">Defaults come from published market benchmarks (hover ⓘ for the source), not from tuning for a win. Change them to match your business.</p>

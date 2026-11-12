@@ -203,6 +203,7 @@ export default function Results() {
           <p className="mt-2 text-muted">Route A (current process) vs Route B (PayPal), on failed invoices whose recovery window closed by {r.asOf}.</p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
+          <a href="/what-if" className={secondary}>What-if: try your policy</a>
           <a href={exportHref} className={secondary}>Export CSV</a>
           <button className={primary} onClick={() => window.print()}>Print / save PDF</button>
         </div>
