@@ -54,7 +54,11 @@ So the trial's result in this demo reflects these market-based assumptions. It i
   - **Save without paying:** "Save PayPal wallet (no payment)" uses PayPal's Vault setup-token flow. The buyer approves on PayPal, then the server exchanges the token for a saved wallet and confirms it with PayPal. Verified on Nov 12, 2026: wallet saved (`VAULTED`), then the next renewal was charged to it with no customer present (`COMPLETED`).
   - Log in with a US PayPal sandbox **personal** (buyer) account. A non-US buyer failed for us with a currency error.
 - **Assumed:** whether the simulated customers pay. Each assumption has an ⓘ with its source; where no public benchmark exists, it says so.
-- **Setup:** add `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (REST sandbox app) to `.env`. In the PayPal developer dashboard, turn on **Save payment methods** for that app, or the wallet won't be saved.
+- **Setup:**
+  1. At [developer.paypal.com](https://developer.paypal.com), with the Sandbox toggle on, open **Apps & Credentials** and create an app (type Merchant).
+  2. On the app's page, turn on **Save payment methods**, or the wallet won't be saved.
+  3. Copy the app's Client ID and Secret into `.env` as `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`.
+  4. For the test buyer, open **Testing Tools → Sandbox Accounts** and use a US **Personal** account. Its email and password are on that account's details page.
 - **Result in this demo:** inconclusive at 10,000 customers. The assumed gain is about 2 points, and this test can detect about 5. A reliable answer needs about 8,000 customers per group, and the Braintree sandbox search stops at 10,000 customers.
 
 ## Tools used
