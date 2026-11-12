@@ -1,4 +1,5 @@
 // Owns the trial run on the server (F4). One runner per process holds a lock, so a second start is refused and
+import { setActiveAssumptions } from "../assumptions";
 // leaving the page doesn't stop the run. State lives in .data/trial-run.json; .data/trial.json (F3's handoff) is
 // read and never written. Pause takes effect at the next day boundary; resume and restart replay the ledger.
 
@@ -129,6 +130,7 @@ export class TrialRunner {
   start(): { ok: true } | { ok: false; status: number; error: string } {
     if (this.active) return { ok: false, status: 409, error: "A trial run is already in progress." };
     const trial = this.trial();
+    setActiveAssumptions(trial?.assumptions);
     if (!trial || trial.status !== "running")
       return { ok: false, status: 409, error: "Start the trial from setup first: the trial isn't running yet." };
     const resuming = ["paused", "error"].includes(this.current.status) && this.current.trialId === trial.id;

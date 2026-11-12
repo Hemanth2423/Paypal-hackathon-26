@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Trial, TrialPreview } from "@/lib/trial";
+import { ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS, type Assumptions } from "@/lib/assumptions";
 import TrialRun from "./TrialRun";
 
 const READINESS: { key: keyof Trial["readiness"]; label: string }[] = [
@@ -143,6 +144,35 @@ export default function TrialSetup() {
               <input type="range" min={10} max={90} step={5} value={t.splitB} onChange={(e) => update({ splitB: +e.target.value })} className="mt-2 w-full accent-[var(--color-action)]" aria-valuetext={`Route B ${t.splitB} percent`} />
               <span className="flex justify-between text-xs font-normal text-muted"><span>More on current process</span><span>More on PayPal</span></span>
             </label>
+            <fieldset className="grid gap-3 rounded-xl border border-line p-4">
+              <legend className="px-1 text-sm font-semibold">Simulation assumptions</legend>
+              <p className="text-xs text-muted">Defaults come from published market benchmarks (hover ⓘ for the source), not from tuning for a win. Change them to match your business.</p>
+              {(Object.keys(ASSUMPTION_INFO) as (keyof Assumptions)[]).map((k) => {
+                const info = ASSUMPTION_INFO[k];
+                const value = t.assumptions?.[k] ?? DEFAULT_ASSUMPTIONS[k];
+                return (
+                  <label key={k} className="grid grid-cols-[1fr_96px] items-center gap-3 text-sm">
+                    <span>
+                      {info.label}{" "}
+                      <span className="cursor-help text-action" title={`${info.market}\nSource: ${info.source}`} aria-label={`${info.market} Source: ${info.source}`} tabIndex={0}>ⓘ</span>
+                      <span className="block text-xs text-muted">Default {k === "smartUplift" ? "+" : ""}{(DEFAULT_ASSUMPTIONS[k] * 100).toFixed(0)}{k === "smartUplift" ? " pp" : "%"}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        step={1}
+                        min={info.min * 100}
+                        max={info.max * 100}
+                        value={+(value * 100).toFixed(1)}
+                        onChange={(e) => update({ assumptions: { ...(t.assumptions ?? DEFAULT_ASSUMPTIONS), [k]: Number(e.target.value) / 100 } })}
+                        className="w-20 rounded-lg border border-line bg-card px-2 py-1.5 text-right"
+                      />
+                      <span className="text-muted">{k === "smartUplift" ? "pp" : "%"}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </fieldset>
             <div className="rounded-xl bg-page p-4 text-sm" aria-live="polite">
               <p className="font-semibold text-navy">What this trial can tell you</p>
               <p className="mt-1">

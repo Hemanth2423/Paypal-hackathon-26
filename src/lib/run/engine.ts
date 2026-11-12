@@ -200,7 +200,7 @@ export async function* runEngine(s: RunSettings, deps: EngineDeps): AsyncGenerat
       if (!soft(inv) || inv.firstDay === day) continue;
       const next = nextRetryDay(inv.route, inv.h, ctx);
       if (next == null || next > day) continue;
-      const ok = attemptSucceeds(s.seed, inv.invoiceId, inv.h.attempts.length, inv.h, s.startDate, day);
+      const ok = attemptSucceeds(s.seed, inv.invoiceId, inv.h.attempts.length, inv.h, s.startDate, day, inv.route, ctx);
       const lastCode = inv.h.attempts[inv.h.attempts.length - 1].code;
       work.push({ inv, amount: ok ? inv.customer.price.toFixed(2) : declineAmount(Number(lastCode)), kind: "retry" });
     }

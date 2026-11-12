@@ -4,6 +4,7 @@ import { seedConfig } from "../config/seed.config";
 import { dayOfMonth } from "../src/lib/run/calendar";
 import { failuresForDay, trialCustomers, type NewFailure } from "../src/lib/run/failures";
 import { successChance } from "../src/lib/run/outcomes";
+import { DEFAULT_ASSUMPTIONS } from "../src/lib/assumptions";
 import { nextRetryDay, type History } from "../src/lib/run/policies";
 import { customerId } from "../src/lib/generator";
 
@@ -53,21 +54,17 @@ test("Route B never plans more retries than Route A's maximum", () => {
       assert.ok(plannedDays("B", first, code).length <= seedConfig.existingProcess.maxRetries, `${code} day ${first}`);
 });
 
-test("2001 odds are higher on the 1st and the 15th than on the 8th", () => {
-  const at = (dom: number) => successChance({ firstCode: "2001", lastCode: "2001", failedRetries: 0, dayOfMonth: dom });
-  assert.ok(at(1) > at(8));
-  assert.ok(at(15) > at(8));
+test("odds come from the assumptions: Route A recovers the current rate, Route B adds the uplift", () => {
+  const a = DEFAULT_ASSUMPTIONS;
+  const odds = (route: "A" | "B") => successChance({ firstCode: "2001", lastCode: "2001", failedRetries: 0, dayOfMonth: 8, route });
+  const over4 = (p: number) => 1 - (1 - p) ** 4;
+  assert.ok(Math.abs(over4(odds("A")) - a.currentRecovery) < 1e-9);
+  assert.ok(Math.abs(over4(odds("B")) - (a.currentRecovery + a.smartUplift)) < 1e-9);
 });
 
-test("each failed retry lowers the next 2001 odds", () => {
-  const after = (failed: number) => successChance({ firstCode: "2001", lastCode: "2001", failedRetries: failed, dayOfMonth: 15 });
-  assert.ok(after(0) > after(1) && after(1) > after(2));
-});
-
-test("other soft codes use the seeded retry odds; hard codes never clear", () => {
-  assert.equal(successChance({ firstCode: "2000", lastCode: "2000", failedRetries: 2, dayOfMonth: 15 }), 0.12);
-  assert.equal(successChance({ firstCode: "2004", lastCode: "2004", failedRetries: 0, dayOfMonth: 15 }), 0);
-  assert.equal(successChance({ firstCode: "2001", lastCode: "2004", failedRetries: 0, dayOfMonth: 15 }), 0);
+test("hard codes never clear", () => {
+  assert.equal(successChance({ firstCode: "2004", lastCode: "2004", failedRetries: 0, dayOfMonth: 15, route: "B" }), 0);
+  assert.equal(successChance({ firstCode: "2001", lastCode: "2004", failedRetries: 0, dayOfMonth: 15, route: "B" }), 0);
 });
 
 const customers = trialCustomers(Array.from({ length: 1000 }, (_, i) => customerId(i + 1)));

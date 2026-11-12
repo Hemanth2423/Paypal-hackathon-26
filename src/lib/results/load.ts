@@ -1,3 +1,4 @@
+import { loadTrial } from "../trial";
 // Reads the current run's ledger and builds its report (F5). Shared by the Results API, its CSV export and the analyst.
 // The report is rebuilt only when the run's state or its ledger file changes.
 
@@ -28,6 +29,9 @@ export function reportKey(): string | null {
 }
 
 export function loadReport(): LoadedReport {
+  // A run left over from a discarded trial isn't this trial's result.
+  const trial = loadTrial();
+  if (!trial || getRunner().state().trialId !== trial.id) return { report: null, reason: "no_run" };
   const key = reportKey();
   if (!key) return { report: null, reason: "no_run" };
   if (memo?.key === key) return memo.value;

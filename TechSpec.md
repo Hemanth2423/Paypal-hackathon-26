@@ -56,7 +56,7 @@ How to read it:
 - **Retry order:** attempts run in chronological rounds (every first attempt, then every first retry…), so repeat charges on one card are minutes apart. This avoids Braintree's duplicate-transaction check.
 - **Outcome encoding:** a decline uses the sandbox test amount (`2000–2999.00` returns that code; `3000.00` returns 3000). A success sends the real plan price, then calls `testing.settle`.
 - **Custom-field check:** one preflight sale confirms the custom fields exist before the bulk run.
-- **Sync (`POST /api/connect`):** uses customer search and transaction search (`orderId` starting with `sm-inv-`). It fetches 50 IDs per page, 4 pages at a time, and streams NDJSON progress to the UI.
+- **Sync (`POST /api/connect`):** uses customer search and transaction search (`orderId` starting with `sm2-inv-`; the earlier `sm-` history is left in the sandbox but never synced). It fetches 50 IDs per page, 4 pages at a time, and streams NDJSON progress to the UI.
 
 ### F2. Leak Diagnostic
 - **Endpoints:**
@@ -108,7 +108,10 @@ type Trial = {
 - **Routing:**
   - The sandbox has one merchant account (`ucb`), so every attempt is tagged with its route in an `sm_route` custom field (the Product.md §11 fallback).
   - If you add a second sandbox merchant account, set `BRAINTREE_ROUTE_B_ACCOUNT_ID` and Route B uses it, with no code change.
-- **Outcome model:** the chance each attempt succeeds is a parameter we set (by decline code, retry timing, and route). So the size of Route B's uplift is an assumption, not a measurement. The parameters live in one config file, the UI links to it, and the report says "simulated outcomes."
+- **Outcome model:** driven by the trial's editable assumptions (`src/lib/assumptions.ts`; defaults and sources in Product.md F3).
+  - Each route gets per-retry odds `1 − (1 − target)^(1/n)`. Here `n` is the number of retries that route schedules for that invoice, and the target is `currentRecovery` for Route A or `currentRecovery + smartUplift` for Route B. So each route recovers its stated rate whatever its schedule.
+  - New failures use `renewalFailureRate` and `softShare`. The seeded history uses the same market values (85% soft, 0.085 per retry ≈ 30% recovery).
+  - **Rule:** assumptions come from market benchmarks and are never tuned to make a trial conclusive. The report says "simulated outcomes" and shows the volume needed for a verdict.
 - **Duplicate guard:** a sale is skipped if its invoice is already collected; the ledger enforces one success per invoice.
 - **Fast-forward:** NDJSON progress streams to the UI. 21 days is about 400–700 sandbox calls; at 8 in parallel that's under 60 seconds. Pause stops the day loop.
 
@@ -156,7 +159,7 @@ type Trial = {
 | Risk | Mitigation |
 |---|---|
 | Gemini request limits are low | One cached call per sync for the summary, and cached analyst answers. A template fallback keeps the app fully usable without AI |
-| A 1,000-customer trial lacks power to reach a verdict | The power estimate is shown up front. `customers` in the seed config can be raised (the seed is slower, nothing else changes) |
+| A 3,000-customer trial may lack power to reach a verdict | The power estimate is shown up front and the report says how much volume is needed. Assumptions are never tuned to force a verdict |
 | Route B's uplift comes from our outcome model | Parameters are in one file, labeled in the UI, and the report says "simulated." The pitch is the measurement method, not the number |
 | Render's disk resets | Everything rebuilds from the Braintree sandbox through Connect |
 | One merchant account in the sandbox | Route tag in a custom field. A second account can be added later with no code change |

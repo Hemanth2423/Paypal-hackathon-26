@@ -50,6 +50,7 @@ Each customer stays on one route for the whole trial, so no invoice is retried b
 - **Simulated:**
   - **Bank decisions.** The sandbox decides success or decline from the amount sent, not from timing, so a documented model picks each attempt's outcome and we send the matching sandbox test amount.
   - **Route B's retry timing.** Smart Retries may not run in sandbox, so our app applies a Smart Retries–style policy.
+  - **How much each route recovers.** These are explicit, merchant-editable assumptions with market-benchmark defaults (F3). We never tune them to make a trial conclusive; if the data can't support a verdict, the report says "inconclusive" and how much volume it needs.
   - **The calendar.** The sandbox can't backdate transactions, so each transaction carries its simulated billing date in a custom field.
 - The app shows these labels on screen, not just in the README.
 
@@ -98,7 +99,7 @@ It follows PayPal's own product UI so the app feels native to PayPal merchants. 
 
 ### F1. Connect merchant
 - [ ] A seed script creates the demo merchant in the Braintree sandbox:
-  - ≥ 1,000 customers with vaulted test cards and subscriptions
+  - 3,000 customers with vaulted test cards and subscriptions
   - failed and recovered renewal attempts
   - a decline mix covering 2000, 2001, 2004, 2015, 2046, and 3000, set in one config file
 - [ ] The app reads all diagnostic data back through the Braintree transaction search API. No dashboard number comes from a local file.
@@ -137,11 +138,19 @@ It follows PayPal's own product UI so the app feels native to PayPal merchants. 
   - **Outcome:** `status (recovered/unrecovered/excluded/in_window), recovered_at, days_to_recover, recovered_amount, refunded_amount, net_recovered_amount`
   - **Provenance:** `subscription_status_end, data_source, outcome_simulated (true/false), exported_at`
 - [ ] The CSV opens cleanly in Excel and Google Sheets (UTF-8, ISO dates, no thousands separators in numbers), and its row count matches the table.
-- [ ] The dashboard loads in under 3 seconds for 1,000 customers after the first sync.
+- [ ] The dashboard loads in under 3 seconds for 3,000 customers after the first sync.
 
 ### F3. Trial setup and readiness
 - [ ] Setup is a 3-step flow in a centered single column, with progress shown: configure → review groups → readiness.
 - [ ] **Configure:** trial length (default 21 days), recovery window (default 14 days), and split (default 50/50). Each field shows how it affects the trial's power estimate.
+- [ ] **Simulation assumptions** (editable, saved with the trial, used by the run). Each shows its default and an ⓘ with the market range and source:
+
+  | Assumption | Default | Market benchmark |
+  |---|---|---|
+  | Renewals that fail on first charge | 35% (demo; set high so a 3,000-customer merchant produces enough failures) | ~10% (Braintree) |
+  | Failures that are soft | 85% | 80–90% (Paddle) |
+  | Soft declines the current process recovers | 30% | 25–35% B2C fixed schedules (Redux Payments); ~51% with Stripe retries (Churnkey) |
+  | Extra recovery from smart retries (Route B) | +5 pp | +4 pp (Churnkey) to +10–20 pp (Recurly); up to +17% relative (Paddle) |
 - [ ] **Assignment:** random and sticky per customer (hash of customer ID + trial seed). A balance table compares the two routes on count, $, decline mix, and plan mix, and warns if any difference exceeds 5%.
 - [ ] Hard declines are excluded from both routes and listed with the reason.
 - [ ] **Readiness checklist:** "Start trial" stays disabled until every item is checked, and its tooltip names any unchecked items. Items:
@@ -193,7 +202,7 @@ It follows PayPal's own product UI so the app feels native to PayPal merchants. 
 |---|---|---|
 | Sandbox allows two merchant accounts (one per route) | Routes collapse into one account | Tag the route on each transaction instead |
 | Custom fields can carry simulated dates | The timeline looks like it all happened today | Store dates in our ledger, keyed by transaction ID |
-| 1,000 customers gives enough power to reach a verdict | Every demo run ends "inconclusive" | Show the power estimate; tune the seed size |
+| A 3,000-customer merchant gives enough power to reach a verdict | Runs end "inconclusive" | Show the power estimate and the volume needed. Never tune assumptions to force a verdict |
 | Production cards on another processor can't move to Braintree | Route B can't charge Route A's customers | Vault migration is part of real onboarding (out of scope) |
 
 ## 12. Demo script (under 3 minutes)

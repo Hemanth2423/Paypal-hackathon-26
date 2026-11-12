@@ -2,7 +2,7 @@
 
 export const seedConfig = {
   randomSeed: 26,
-  customers: 1000,
+  customers: 3000,
   historyDays: 90,
   currency: "USD",
 
@@ -27,13 +27,16 @@ export const seedConfig = {
 
   // Decline mix for first failures. Codes are Braintree processor response codes.
   // `retrySuccess` = chance each retry succeeds (outcome model; the sandbox itself decides by amount).
+  // Decline mix for first failures: 85% soft / 15% hard (market: soft declines are 80–90% of failures, Paddle).
+  // `retrySuccess` = chance one retry clears in the seeded history. 0.085 per retry over 4 retries recovers ~30% of soft
+  // declines, the market rate for a fixed B2C schedule (Redux Payments: 25–35%). Not tuned to make trials conclusive.
   declineMix: [
-    { code: 2001, weight: 0.4, retrySuccess: 0.09 }, // Insufficient funds (soft). Matches the trial model's Route A rate (trialModel below)
-    { code: 2000, weight: 0.2, retrySuccess: 0.12 }, // Do not honor (soft)
-    { code: 2046, weight: 0.14, retrySuccess: 0.1 }, // Declined (soft)
-    { code: 2004, weight: 0.14, retrySuccess: 0 }, // Expired card (hard)
-    { code: 2015, weight: 0.07, retrySuccess: 0 }, // Transaction not allowed (hard)
-    { code: 3000, weight: 0.05, retrySuccess: 0.55 }, // Processor network unavailable (soft)
+    { code: 2001, weight: 0.43, retrySuccess: 0.085 }, // Insufficient funds (soft)
+    { code: 2000, weight: 0.22, retrySuccess: 0.085 }, // Do not honor (soft)
+    { code: 2046, weight: 0.15, retrySuccess: 0.085 }, // Declined (soft)
+    { code: 2004, weight: 0.1, retrySuccess: 0 }, // Expired card (hard)
+    { code: 2015, weight: 0.05, retrySuccess: 0 }, // Transaction not allowed (hard)
+    { code: 3000, weight: 0.05, retrySuccess: 0.085 }, // Processor network unavailable (soft)
   ],
 
   // The merchant's existing recovery process: retry every N days, M times, for every decline code.

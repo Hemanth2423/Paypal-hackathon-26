@@ -3,6 +3,7 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { clampAssumptions, DEFAULT_ASSUMPTIONS, type Assumptions } from "./assumptions";
 import { minDetectableUplift, recoveryRate, type Invoice } from "./diagnostic";
 
 const TRIAL_FILE = ".data/trial.json";
@@ -18,6 +19,7 @@ export type Trial = {
   recoveryWindowDays: number; // each failure is followed this long after it first fails
   splitB: number; // % of customers on Route B (PayPal)
   earlyStop: { stopIfBWorse: boolean; maxComplaints: number };
+  assumptions: Assumptions; // simulation inputs, defaults from market benchmarks (editable)
   readiness: { consent: boolean; dataScope: boolean; earlyStop: boolean; oneRoutePerInvoice: boolean };
   createdAt: string;
   startedAt: string | null;
@@ -39,6 +41,7 @@ export function newTrial(): Trial {
     recoveryWindowDays: 14,
     splitB: 50,
     earlyStop: { stopIfBWorse: true, maxComplaints: 5 },
+    assumptions: DEFAULT_ASSUMPTIONS,
     readiness: { consent: false, dataScope: false, earlyStop: false, oneRoutePerInvoice: false },
     createdAt: new Date().toISOString(),
     startedAt: null,
@@ -76,6 +79,7 @@ export function applyConfig(t: Trial, c: Partial<Trial>): Trial {
       stopIfBWorse: c.earlyStop?.stopIfBWorse ?? t.earlyStop.stopIfBWorse,
       maxComplaints: clamp(c.earlyStop?.maxComplaints ?? t.earlyStop.maxComplaints, 0, 1000, 5),
     },
+    assumptions: clampAssumptions(c.assumptions, t.assumptions ?? DEFAULT_ASSUMPTIONS),
     readiness: { ...t.readiness, ...(c.readiness ?? {}) },
   };
 }

@@ -6,18 +6,31 @@ import { assignRoute, type Route } from "../trial";
 import { dayOfMonth, uniform } from "./calendar";
 import { failuresForDay, type TrialCustomer } from "./failures";
 import { successChance } from "./outcomes";
-import { nextRetryDay, type History } from "./policies";
+import { nextRetryDay, type History, type PolicyContext } from "./policies";
 
 export type SimSettings = { seed: string; splitB: number; lengthDays: number; windowDays: number; startDate: string };
 export type SimInvoice = { invoiceId: string; customerId: string; route: Route; code: string; amount: number; soft: boolean; recoveredDay: number | null };
 
 // Whether an attempt clears. Keyed by the trial seed, invoice and attempt number, so engine and simulation agree.
-export function attemptSucceeds(seed: string, invoiceId: string, attemptNo: number, h: History, startDate: string, day: number): boolean {
+// Retries the route would make if every one failed (its full schedule for this invoice).
+export function plannedRetries(route: Route, h: History, ctx: PolicyContext): number {
+  let hh: History = { firstDay: h.firstDay, attempts: [h.attempts[0]] };
+  for (let n = 0; n < 20; n++) {
+    const d = nextRetryDay(route, hh, ctx);
+    if (d == null) return n;
+    hh = { ...hh, attempts: [...hh.attempts, { ...h.attempts[0], day: d, approved: false }] };
+  }
+  return 20;
+}
+
+export function attemptSucceeds(seed: string, invoiceId: string, attemptNo: number, h: History, startDate: string, day: number, route: Route, ctx: PolicyContext): boolean {
   const chance = successChance({
     firstCode: h.attempts[0].code,
     lastCode: h.attempts[h.attempts.length - 1].code,
     failedRetries: h.attempts.length - 1,
     dayOfMonth: dayOfMonth(startDate, day),
+    route,
+    plannedRetries: plannedRetries(route, h, ctx),
   });
   return uniform(seed, "outcome", invoiceId, String(attemptNo)) < chance;
 }
@@ -45,7 +58,7 @@ export function simulateTrial(customers: TrialCustomer[], s: SimSettings): SimIn
     for (const o of open) {
       const next = nextRetryDay(o.inv.route, o.h, ctx);
       if (next == null || next > day) continue;
-      const approved = attemptSucceeds(s.seed, o.inv.invoiceId, o.h.attempts.length, o.h, s.startDate, day);
+      const approved = attemptSucceeds(s.seed, o.inv.invoiceId, o.h.attempts.length, o.h, s.startDate, day, o.inv.route, ctx);
       o.h.attempts.push({ day, code: o.h.attempts[0].code, approved });
       if (approved) o.inv.recoveredDay = day;
     }

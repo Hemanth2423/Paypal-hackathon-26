@@ -1,4 +1,6 @@
 // Which renewals fail on each simulated trial day (F4). Same settings as the seeded history (config/seed.config.ts),
+import { activeAssumptions } from "../assumptions";
+import { ruleFor } from "../declines";
 // keyed by the model seed, so the same renewals fail however customers are split between routes.
 
 import { seedConfig } from "../../../config/seed.config";
@@ -36,8 +38,11 @@ export function failuresForDay(customers: TrialCustomer[], startDate: string, da
   const out: NewFailure[] = [];
   for (const customer of customers) {
     if (customer.renewalDay !== dom) continue;
-    if (uniform(MODEL_SEED, "renewal-fails", customer.customerId, date) >= seedConfig.renewalFailureRate) continue;
-    const code = String(pickWeighted(seedConfig.declineMix, uniform(MODEL_SEED, "decline-code", customer.customerId, date)).code);
+    const a = activeAssumptions();
+    if (uniform(MODEL_SEED, "renewal-fails", customer.customerId, date) >= a.renewalFailureRate) continue;
+    const soft = uniform(MODEL_SEED, "decline-type", customer.customerId, date) < a.softShare;
+    const pool = seedConfig.declineMix.filter((d) => (ruleFor(String(d.code)).type === "soft") === soft);
+    const code = String(pickWeighted(pool, uniform(MODEL_SEED, "decline-code", customer.customerId, date)).code);
     out.push({ invoiceId: trialInvoiceId(customer.customerId, date), customer, day, code });
   }
   return out;

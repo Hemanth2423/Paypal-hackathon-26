@@ -3,7 +3,8 @@
 
 import type { SeedConfig } from "../../config/seed.config";
 
-export const ID_PREFIX = "sm";
+// "sm2": the market-benchmark reseed (Nov 2026). The earlier "sm" history stays in the sandbox but is never synced.
+export const ID_PREFIX = "sm2";
 export const customerId = (i: number) => `${ID_PREFIX}-cust-${String(i).padStart(4, "0")}`;
 
 export type PlannedAttempt = {

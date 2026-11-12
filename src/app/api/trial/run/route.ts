@@ -1,6 +1,7 @@
 import { seedConfig } from "@config/seed.config";
 import { getRunner } from "@/lib/run/runner";
 import { loadTrial } from "@/lib/trial";
+import { clampAssumptions } from "@/lib/assumptions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,9 @@ const assumptions = {
 // Run state and every finished day so far, so a reopened page can redraw the timeline.
 export async function GET() {
   const runner = getRunner();
-  return Response.json({ trial: loadTrial(), state: runner.state(), active: runner.isActive(), assumptions });
+  const trial = loadTrial();
+  const a = clampAssumptions(trial?.assumptions);
+  return Response.json({ trial, state: runner.state(), active: runner.isActive(), assumptions: { ...assumptions, renewalFailureRate: a.renewalFailureRate, market: a } });
 }
 
 // Starts or resumes the run and streams its events as newline-delimited JSON. Closing the stream leaves the run going.
