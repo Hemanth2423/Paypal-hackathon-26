@@ -153,7 +153,7 @@ export default function Diagnostic() {
       { headerName: "Decline", valueGetter: (p) => `${p.data!.firstCode} · ${p.data!.declineName}`, flex: 1, minWidth: 200 },
       { field: "declineType", headerName: "Type", width: 90 },
       { field: "cardBrand", headerName: "Card", width: 120 },
-      { headerName: "Attempts", valueGetter: (p) => p.data!.attempts.length, width: 100, type: "rightAligned" },
+      { headerName: "Attempts", valueGetter: (p) => (p.data as Invoice & { attemptCount?: number }).attemptCount ?? p.data!.attempts.length, width: 100, type: "rightAligned" },
       {
         field: "status",
         headerName: "Status",
@@ -432,7 +432,7 @@ export default function Diagnostic() {
                   defaultColDef={{ sortable: true, filter: true, resizable: true }}
                   pagination
                   paginationPageSize={50}
-                  onRowClicked={(e) => setSelected(e.data ?? null)}
+                  onRowClicked={(e) => e.data && fetch(`/api/diagnostic?invoice=${encodeURIComponent(e.data.invoiceId)}`).then((r) => r.json()).then((j) => setSelected(j.invoice))}
                   rowStyle={{ cursor: "pointer" }}
                 />
               )}

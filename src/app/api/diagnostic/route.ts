@@ -9,6 +9,9 @@ export async function GET(req: Request) {
   const asOf = cache.summary.historyEnd ?? cache.summary.syncedAt.slice(0, 10);
   const f = parseFilters(new URL(req.url).searchParams);
   const invoices = buildInvoices(cache.transactions, asOf);
+  // One invoice with its full attempt history (opened from the table), so the list itself stays small.
+  const one = new URL(req.url).searchParams.get("invoice");
+  if (one) return Response.json({ invoice: invoices.find((i) => i.invoiceId === one) ?? null });
   const d = computeDiagnostic(invoices, { from: f.from, to: f.to, reason: f.reason, brand: f.brand, plan: f.plan }, asOf);
   const options = {
     reasons: [...new Map(invoices.map((i) => [i.firstCode, i.declineName])).entries()].sort(),
@@ -17,5 +20,6 @@ export async function GET(req: Request) {
     minDate: cache.summary.historyStart,
     maxDate: cache.summary.historyEnd,
   };
-  return Response.json({ ...d, options, syncedAt: cache.summary.syncedAt });
+  const rows = d.rows.map((r) => ({ ...r, attempts: [], attemptCount: r.attempts.length }));
+  return Response.json({ ...d, rows, options, syncedAt: cache.summary.syncedAt });
 }

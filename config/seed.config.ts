@@ -2,7 +2,7 @@
 
 export const seedConfig = {
   randomSeed: 26,
-  customers: 3000,
+  customers: 10000,
   historyDays: 90,
   currency: "USD",
 
