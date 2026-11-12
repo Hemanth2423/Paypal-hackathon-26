@@ -15,6 +15,7 @@
     "guardrails:f6": "tsx scripts/guardrails-f6.ts"
   },
   "dependencies": {
+    "@paypal/paypal-server-sdk": "^2.5.0",
     "ag-grid-community": "^36.3.0",
     "ag-grid-react": "^36.3.0",
     "braintree": "^3.41.0",
