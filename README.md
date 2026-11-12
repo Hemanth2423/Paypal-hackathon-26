@@ -55,6 +55,21 @@ So the trial's result in this demo reflects these market-based assumptions. It i
 - **Assumed:** whether the simulated customers pay. Each assumption has an ⓘ with its source; where no public benchmark exists, it says so.
 - **Setup:** add `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (REST sandbox app) to `.env`.
 
+## Tools used
+
+| Tool | How SecondMint uses it |
+|---|---|
+| **Braintree sandbox** (PayPal), Node SDK | Seeds the demo merchant (customers, vaulted cards, subscriptions, failed renewals, retries, settlements, refunds). Sync reads it back through customer and transaction search. Every trial retry is a real `transaction.sale`. |
+| **PayPal REST sandbox** (Orders v2, Vault v3, JS SDK v5) | Wallet experiment: a live PayPal button, saving a wallet without a payment (setup token, then payment token), and charging the next renewal to the saved wallet with no customer present. |
+| **AI: DeepSeek `deepseek-chat`** (OpenAI-compatible API; Gemini free tier as fallback) | (1) The Leak Diagnostic summary. (2) The Results summary, which can't contradict the rule-based verdict. (3) The AI analyst, which answers by calling tools over the same data the screens use. Every number in an AI answer is checked against the data, and answers that fail are retried or replaced by a template. It refuses to state real-world PayPal performance. |
+| **AG Grid Community** (sponsor) | Interactive tables: failed renewals (sort, filter, group, drill-down), the results breakdown, and the wallet results. |
+| **Recharts** | Leak and timeline charts. |
+| **Next.js 16, React 19, TypeScript, Tailwind CSS 4** | App, API routes and the visual system. |
+| **Claude Code** with the Compound Engineering plugin and the draw-diagram skill (Playwright) | Development, specs, code review and the architecture diagram. |
+
+## License
+MIT. See [LICENSE](LICENSE).
+
 ## Tests
 
 ```bash

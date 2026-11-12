@@ -5,6 +5,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { WALLET_INFO, WALLET_READINESS, type WalletAssumptions } from "@/lib/wallet/info";
 import type { WalletReport, WalletTrial } from "@/lib/wallet/experiment";
 import type { LiveEvent } from "@/lib/wallet/paypal";
+import { AgGridReact } from "ag-grid-react";
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 type Plan = { eligible: number; control: number; treatment: number; minDetectableUplift: number | null; expectedUplift: number };
 type Data = { trial: WalletTrial; plan: Plan; report: WalletReport | null; live: LiveEvent[]; paypalClientId: string | null };
@@ -293,42 +297,58 @@ export default function Wallet() {
               </div>
               <div className={card}>
                 <h3 className="font-semibold text-navy">Side by side</h3>
-                <table className="mt-3 w-full text-sm">
-                  <thead><tr className="text-left text-muted"><th className="font-normal">Metric</th><th>Card only</th><th>+ PayPal</th></tr></thead>
-                  <tbody>
-                    {[
-                      ["Customers assigned", r.groups.control.assigned, r.groups.treatment.assigned],
-                      ["Recovered invoices", r.groups.control.recovered, r.groups.treatment.recovered],
-                      ["Recovered ÷ assigned (primary)", pct(r.groups.control.recoveryRate), pct(r.groups.treatment.recoveryRate)],
-                      ["Paid with PayPal", r.groups.control.paidWithPayPal, r.groups.treatment.paidWithPayPal],
-                      ["Processing fees", money(r.groups.control.fees), money(r.groups.treatment.fees)],
-                      ["Refunds", r.groups.control.refunds, r.groups.treatment.refunds],
-                      ["Net revenue per assigned customer", money(r.groups.control.netPerAssigned), money(r.groups.treatment.netPerAssigned)],
-                      ["Next renewal paid ÷ assigned", pct(r.groups.control.nextRenewalPaidRate), pct(r.groups.treatment.nextRenewalPaidRate)],
-                      ["Repeat failure among recovered", pct(r.groups.control.repeatFailureRate), pct(r.groups.treatment.repeatFailureRate)],
-                    ].map(([l, a, b]) => (
-                      <tr key={String(l)} className="border-t border-line"><td className="py-1.5 text-muted">{l}</td><td>{a}</td><td>{b}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="mt-3">
+                  <AgGridReact
+                    theme={themeQuartz}
+                    domLayout="autoHeight"
+                    rowData={[
+                      { metric: "Customers assigned", a: r.groups.control.assigned, b: r.groups.treatment.assigned },
+                      { metric: "Recovered invoices", a: r.groups.control.recovered, b: r.groups.treatment.recovered },
+                      { metric: "Recovered ÷ assigned (primary)", a: pct(r.groups.control.recoveryRate), b: pct(r.groups.treatment.recoveryRate) },
+                      { metric: "Paid with PayPal", a: r.groups.control.paidWithPayPal, b: r.groups.treatment.paidWithPayPal },
+                      { metric: "Processing fees", a: money(r.groups.control.fees), b: money(r.groups.treatment.fees) },
+                      { metric: "Refunds", a: r.groups.control.refunds, b: r.groups.treatment.refunds },
+                      { metric: "Net revenue per assigned customer", a: money(r.groups.control.netPerAssigned), b: money(r.groups.treatment.netPerAssigned) },
+                      { metric: "Next renewal paid ÷ assigned", a: pct(r.groups.control.nextRenewalPaidRate), b: pct(r.groups.treatment.nextRenewalPaidRate) },
+                      { metric: "Repeat failure among recovered", a: pct(r.groups.control.repeatFailureRate), b: pct(r.groups.treatment.repeatFailureRate) },
+                    ]}
+                    columnDefs={[
+                      { field: "metric", headerName: "Metric", flex: 2, minWidth: 220 },
+                      { field: "a", headerName: "Card only", flex: 1, type: "rightAligned", cellDataType: "text" },
+                      { field: "b", headerName: "+ PayPal", flex: 1, type: "rightAligned", cellDataType: "text" },
+                    ]}
+                    defaultColDef={{ sortable: false, resizable: true }}
+                  />
+                </div>
                 <p className="mt-3 text-sm">
                   Saved-wallet effect on next renewal: <strong>{pp(r.secondary.uplift)}</strong> (95% interval {pp(r.secondary.ci95?.low)} to {pp(r.secondary.ci95?.high)}). Payment errors: none modeled (equal in both groups).
                 </p>
               </div>
               <div className={card}>
                 <h3 className="font-semibold text-navy">By why the customer had to act</h3>
-                <table className="mt-3 w-full text-sm">
-                  <thead><tr className="text-left text-muted"><th className="font-normal">Reason</th><th>Card only</th><th>+ PayPal</th></tr></thead>
-                  <tbody>
-                    {r.byReason.map((b) => (
-                      <tr key={b.reason} className="border-t border-line">
-                        <td className="py-1.5">{b.reason === "hard_decline" ? "Hard decline (e.g. expired card)" : "Retries ran out"}</td>
-                        <td>{pct(b.control.recoveryRate)} of {b.control.assigned}</td>
-                        <td>{pct(b.treatment.recoveryRate)} of {b.treatment.assigned}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="mt-3">
+                  <AgGridReact
+                    theme={themeQuartz}
+                    domLayout="autoHeight"
+                    rowData={r.byReason.map((b) => ({
+                      reason: b.reason === "hard_decline" ? "Hard decline (e.g. expired card)" : "Retries ran out",
+                      aRate: b.control.recoveryRate,
+                      aN: b.control.assigned,
+                      bRate: b.treatment.recoveryRate,
+                      bN: b.treatment.assigned,
+                      diff: b.control.recoveryRate != null && b.treatment.recoveryRate != null ? b.treatment.recoveryRate - b.control.recoveryRate : null,
+                    }))}
+                    columnDefs={[
+                      { field: "reason", headerName: "Reason", flex: 2, minWidth: 200 },
+                      { field: "aRate", headerName: "Card only", flex: 1, type: "rightAligned", valueFormatter: (p) => pct(p.value) },
+                      { field: "aN", headerName: "Assigned", flex: 1, type: "rightAligned" },
+                      { field: "bRate", headerName: "+ PayPal", flex: 1, type: "rightAligned", valueFormatter: (p) => pct(p.value) },
+                      { field: "bN", headerName: "Assigned", flex: 1, type: "rightAligned" },
+                      { field: "diff", headerName: "Difference", flex: 1, type: "rightAligned", valueFormatter: (p) => pp(p.value) },
+                    ]}
+                    defaultColDef={{ sortable: true, resizable: true }}
+                  />
+                </div>
                 <p className="mt-2 text-xs text-muted">Directional only: small slices are noisy.</p>
               </div>
               <button className={`${secondary} justify-self-start`} onClick={discard}>Discard and set up a new experiment</button>
