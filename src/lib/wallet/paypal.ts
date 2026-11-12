@@ -1,6 +1,6 @@
 // PayPal REST sandbox for the wallet experiment's live flow (F8). Secret stays on the server.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
 const LIVE_FILE = ".data/wallet-live.json";
 const base = () => process.env.PAYPAL_API_BASE?.trim() || "https://api-m.sandbox.paypal.com";
@@ -8,7 +8,7 @@ const appUrl = () => process.env.APP_URL?.trim() || "http://localhost:3000";
 
 export type LiveEvent = {
   at: string;
-  kind: "payment" | "renewal";
+  kind: "payment" | "renewal" | "saved";
   orderId: string;
   status: string;
   amount: string;
@@ -114,6 +114,63 @@ export async function chargeSavedWallet(vaultId: string, amount: string): Promis
   let final = o;
   if (o.status !== "COMPLETED") final = (await call(`/v2/checkout/orders/${encodeURIComponent(o.id)}/capture`)) as unknown as Captured;
   return { at: new Date().toISOString(), kind: "renewal", orderId: final.id, status: final.status, amount, vaultId };
+}
+
+const SETUP_FILE = ".data/wallet-setup.json";
+const DEBUG_FILE = ".data/wallet-paypal-debug.json";
+
+// Keeps PayPal's raw replies (no secrets) so any failure can be diagnosed from what PayPal actually said.
+function debug(step: string, body: unknown) {
+  mkdirSync(".data", { recursive: true });
+  const prev = existsSync(DEBUG_FILE) ? (JSON.parse(readFileSync(DEBUG_FILE, "utf8")) as unknown[]) : [];
+  writeFileSync(DEBUG_FILE, JSON.stringify([...prev.slice(-19), { at: new Date().toISOString(), step, body }], null, 2));
+}
+
+async function vaultCall(path: string, body: unknown, method = "POST") {
+  const res = await fetch(`${base()}${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${await token()}`, "Content-Type": "application/json", "PayPal-Request-Id": crypto.randomUUID() },
+    body: method === "GET" ? undefined : JSON.stringify(body),
+    signal: AbortSignal.timeout(30_000),
+  });
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  debug(`${method} ${path}`, { status: res.status, json });
+  if (!res.ok) {
+    const details = (json.details as { issue?: string; description?: string }[] | undefined)?.map((d) => `${d.issue}: ${d.description}`).join("; ");
+    throw new Error(`PayPal ${res.status}: ${(json.message as string) ?? (json.name as string) ?? "request failed"}${details ? ` (${details})` : ""}`);
+  }
+  return json;
+}
+
+// Step 1: ask PayPal for a setup token and the buyer approval link. Saves no payment.
+export async function createSetupToken(): Promise<{ id: string; approveUrl: string }> {
+  const j = (await vaultCall("/v3/vault/setup-tokens", {
+    payment_source: {
+      paypal: {
+        description: "Save your PayPal wallet for future SecondMint renewals",
+        permit_multiple_payment_tokens: false,
+        usage_pattern: "IMMEDIATE",
+        usage_type: "MERCHANT",
+        customer_type: "CONSUMER",
+        experience_context: { brand_name: "SecondMint Demo", return_url: `${appUrl()}/wallet?vault=return`, cancel_url: `${appUrl()}/wallet?vault=cancel` },
+      },
+    },
+  })) as { id: string; links?: { rel: string; href: string }[] };
+  const approveUrl = j.links?.find((l) => l.rel === "approve")?.href;
+  if (!approveUrl) throw new Error("PayPal returned no approval link for the setup token.");
+  // Kept server-side: the exchange uses this ID, never one taken from the return URL.
+  writeFileSync(SETUP_FILE, JSON.stringify({ id: j.id, createdAt: new Date().toISOString() }));
+  return { id: j.id, approveUrl };
+}
+
+// Step 2 (after the buyer approves): exchange the setup token for the reusable payment token, then read it back.
+export async function exchangeSetupToken(): Promise<LiveEvent> {
+  if (!existsSync(SETUP_FILE)) throw new Error("No pending save request. Click 'Save PayPal wallet' first.");
+  const { id } = JSON.parse(readFileSync(SETUP_FILE, "utf8")) as { id: string };
+  const t = (await vaultCall("/v3/vault/payment-tokens", { payment_source: { token: { id, type: "SETUP_TOKEN" } } })) as { id: string; customer?: { id?: string } };
+  const check = (await vaultCall(`/v3/vault/payment-tokens/${encodeURIComponent(t.id)}`, null, "GET")) as { id?: string };
+  rmSync(SETUP_FILE, { force: true });
+  return { at: new Date().toISOString(), kind: "saved", orderId: id, status: check.id === t.id ? "VAULTED" : "UNVERIFIED", amount: "0.00", vaultId: t.id, vaultStatus: "VAULTED", customerId: t.customer?.id ?? null };
 }
 
 export const loadLive = (): LiveEvent[] => (existsSync(LIVE_FILE) ? (JSON.parse(readFileSync(LIVE_FILE, "utf8")) as LiveEvent[]) : []);

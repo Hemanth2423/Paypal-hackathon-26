@@ -1,4 +1,4 @@
-import { appendLive, captureOrder, chargeSavedWallet, createOrder, findSavedWallet, idToken, loadLive, paypalConfigured } from "@/lib/wallet/paypal";
+import { appendLive, captureOrder, chargeSavedWallet, createOrder, createSetupToken, exchangeSetupToken, findSavedWallet, idToken, loadLive, paypalConfigured } from "@/lib/wallet/paypal";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +11,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ action: string
   const { action } = await ctx.params;
   try {
     if (action === "id-token") return Response.json({ idToken: await idToken() });
+    if (action === "setup") return Response.json(await createSetupToken());
+    if (action === "exchange") {
+      const e = await exchangeSetupToken();
+      appendLive(e);
+      return Response.json(e);
+    }
     if (action === "order") return Response.json({ id: await createOrder(AMOUNT) });
     if (action === "capture") {
       const { orderId } = (await req.json()) as { orderId?: string };
@@ -20,7 +26,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ action: string
       return Response.json(e);
     }
     if (action === "renewal") {
-      const payments = [...loadLive()].reverse().filter((e) => e.kind === "payment");
+      const payments = [...loadLive()].reverse().filter((e) => e.kind === "payment" || e.kind === "saved");
       let vaultId = payments.find((e) => e.vaultId)?.vaultId ?? null;
       // Saving may have finished after the payment: look it up by the PayPal customer ID.
       const customerId = payments.find((e) => e.customerId)?.customerId;

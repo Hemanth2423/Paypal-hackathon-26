@@ -27,7 +27,39 @@ function LivePayPal({ clientId, live, onChange }: { clientId: string | null; liv
   const ref = useRef<HTMLDivElement>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const saved = [...live].reverse().find((e) => e.kind === "payment" && e.vaultId);
+  const saved = [...live].reverse().find((e) => (e.kind === "payment" || e.kind === "saved") && e.vaultId);
+
+  // Returning from PayPal's approval page: exchange the approved setup token for the saved wallet.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const v = q.get("vault");
+    if (!v) return;
+    window.history.replaceState(null, "", "/wallet");
+    if (v === "cancel") return setMsg("You cancelled saving the wallet on PayPal.");
+    setBusy(true);
+    setMsg("Saving your PayPal wallet…");
+    fetch("/api/wallet/paypal/exchange", { method: "POST" })
+      .then(async (r) => {
+        const j = await r.json();
+        setMsg(r.ok ? `PayPal wallet saved (token ${j.vaultId}, confirmed by PayPal: ${j.status}). You can now charge the next renewal.` : `PayPal didn't save the wallet: ${j.error}`);
+      })
+      .catch((e) => setMsg(`Saving failed: ${(e as Error).message}`))
+      .finally(() => {
+        setBusy(false);
+        onChange();
+      });
+  }, [onChange]);
+
+  async function startSave() {
+    setBusy(true);
+    const r = await fetch("/api/wallet/paypal/setup", { method: "POST" });
+    const j = await r.json();
+    if (!r.ok) {
+      setBusy(false);
+      return setMsg(`Couldn't start saving: ${j.error}`);
+    }
+    window.location.href = j.approveUrl; // PayPal brings the buyer back to /wallet?vault=return
+  }
   const rendered = useRef(false); // draw the PayPal button once; redrawing destroys the first copy
 
   useEffect(() => {
@@ -98,6 +130,9 @@ function LivePayPal({ clientId, live, onChange }: { clientId: string | null; liv
         <p className="my-3 text-center text-xs text-muted">or</p>
         {clientId ? <div ref={ref} /> : <p className="text-sm text-bad">Add PAYPAL_CLIENT_ID to .env to show the PayPal button.</p>}
       </div>
+      <button className={`${secondary} mt-4 mr-2`} disabled={busy} onClick={startSave} title="Save the buyer's PayPal wallet without taking a payment">
+        Save PayPal wallet (no payment)
+      </button>
       <button className={`${secondary} mt-4`} disabled={!saved || busy} onClick={renew} title={saved ? "Charge the saved wallet" : "Pay with PayPal first"}>
         {busy ? "Charging…" : "Charge next renewal to saved wallet"}
       </button>
@@ -106,8 +141,9 @@ function LivePayPal({ clientId, live, onChange }: { clientId: string | null; liv
         <ul className="mt-4 grid gap-1 text-xs text-muted">
           {live.map((e) => (
             <li key={e.orderId + e.at}>
-              {new Date(e.at).toLocaleTimeString()} · {e.kind === "payment" ? "Payment" : "Next renewal"} · ${e.amount} · {e.status} · order {e.orderId}
+              {new Date(e.at).toLocaleTimeString()} · {e.kind === "payment" ? "Payment" : e.kind === "saved" ? "Wallet saved (no payment)" : "Next renewal"} · ${e.amount} · {e.status} · order {e.orderId}
               {e.kind === "payment" && ` · wallet ${e.vaultId ? "saved" : (e.vaultStatus ?? "not saved")}`}
+              {e.kind === "saved" && ` · wallet saved (token ${e.vaultId})`}
             </li>
           ))}
         </ul>
