@@ -250,6 +250,37 @@ export default function Diagnostic() {
         </div>
       </header>
 
+      <section id="measure" aria-labelledby="measure-h" className="scroll-mt-24">
+        <h2 id="measure-h" className="text-lg font-semibold text-navy">What would you like to measure?</h2>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
+          {[
+            {
+              href: "/trial",
+              title: "PayPal Smart Retries",
+              body: "Do smarter retries recover more of your retryable failures?",
+              amount: d.rows.filter((r) => r.declineType === "soft").reduce((x, r) => x + r.amount, 0),
+              unit: "in retryable failures",
+            },
+            {
+              href: "/wallet",
+              title: "Add PayPal wallet",
+              body: "Does offering PayPal on the payment-update page recover more customers who must act?",
+              amount: d.rows.filter((r) => r.declineType === "hard" || r.status === "unrecovered").reduce((x, r) => x + r.amount, 0),
+              unit: "in failures that need the customer",
+            },
+          ].map((c) => (
+            <Link key={c.href} href={c.href} className={`${card} group flex items-center justify-between gap-4 transition hover:border-action`}>
+              <span>
+                <span className="block text-lg font-semibold text-navy">{c.title}</span>
+                <span className="mt-1 block text-sm text-muted">{c.body}</span>
+                <span className="mt-2 block text-sm"><strong className="text-ink">{money(c.amount)}</strong> {c.unit}</span>
+              </span>
+              <span aria-hidden className="text-2xl text-action transition group-hover:translate-x-1">→</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section aria-label="Key metrics" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi label="Failed revenue" value={money(k.failedRevenue)} def={DEFS.failed} active={!Object.keys(table).length} onClick={() => setTable({})} delta={<Delta now={k.last30.failedRevenue} prev={k.prior30.failedRevenue} />} />
         <Kpi label="Recoverable revenue" value={money(k.recoverableRevenue)} def={DEFS.recoverable} active={table.type === "soft"} onClick={() => setT("type", "soft")} delta={<Delta now={k.last30.recoverableRevenue} prev={k.prior30.recoverableRevenue} />} />

@@ -150,7 +150,7 @@ It follows PayPal's own product UI so the app feels native to PayPal merchants. 
   | Renewals that fail on first charge | 35% (demo; set high so a 3,000-customer merchant produces enough failures) | ~10% (Braintree) |
   | Failures that are soft | 85% | 80–90% (Paddle) |
   | Soft declines the current process recovers | 30% | 25–35% B2C fixed schedules (Redux Payments); ~51% with Stripe retries (Churnkey) |
-  | Extra recovery from smart retries (Route B) | +5 pp | +4 pp (Churnkey) to +10–20 pp (Recurly); up to +17% relative (Paddle) |
+  | Smart Retries uplift (Route B, assumed) | +7 pp | Stripe Smart Retries raised InVideo's recovery from 23% to 30% (+7 pp); market range +4 pp (Churnkey) to +10–20 pp (Recurly) |
 - [ ] **Assignment:** random and sticky per customer (hash of customer ID + trial seed). A balance table compares the two routes on count, $, decline mix, and plan mix, and warns if any difference exceeds 5%.
 - [ ] Hard declines are excluded from both routes and listed with the reason.
 - [ ] **Readiness checklist:** "Start trial" stays disabled until every item is checked, and its tooltip names any unchecked items. Items:
@@ -184,6 +184,45 @@ It follows PayPal's own product UI so the app feels native to PayPal merchants. 
 - [ ] When the data can't answer, it says so. It never states real-world PayPal performance (tested with ≥ 3 adversarial prompts).
 - [ ] It writes the report summary, which must match the rule-based verdict.
 - [ ] Suggested questions are shown when the panel is empty (e.g. "Which decline reason drove the uplift?").
+
+### F7. Progress navigation and experiment choice
+- [ ] The top navigation is a step bar: ① Connect → ② Diagnose → ③ Choose experiment → ④ Set up → ⑤ Run → ⑥ Results.
+- [ ] Completed steps show ✓, the current step is highlighted, and unreached steps are greyed out and not clickable. Progress comes from real state (connected, experiment chosen, trial running, run finished).
+- [ ] The top of the Leak Diagnostic asks "What would you like to measure?" with two cards, each showing the dollars it targets:
+  - **PayPal Smart Retries:** retryable failures. Opens the retry trial (F3–F5).
+  - **Add PayPal wallet:** failures that need the customer to act (hard declines and soft declines whose retries ran out). Opens the wallet experiment (F8).
+
+### F8. Wallet experiment (adds a choice; doesn't replace cards)
+**Design**
+- Where: the payment-update page a customer sees after a renewal fails and can't be retried.
+- **Control:** today's update page with the card form only.
+- **Treatment:** the same page (same price, same message, same card form) plus a Pay with PayPal button.
+- Eligible: customers with a hard decline, or a soft decline whose retries ran out. Assignment is random and fixed per customer, 50/50 by default.
+- Sample size and duration are set before the start. The run can't start until the readiness checklist is complete, and it can't be edited once started.
+- It runs separately from the retry trial, never on the same customers at the same time.
+
+**Metrics**
+- [ ] **Primary:** recovered invoices ÷ eligible customers assigned (everyone assigned counts, not only PayPal clickers).
+- [ ] **Guardrails:**
+  - net revenue per assigned customer after processing fees (card 2.9% + $0.30; PayPal 3.49% + $0.49)
+  - payment errors
+  - refunds and disputes
+- [ ] **Secondary (saved-wallet benefit):** each paying customer's method is saved (card or PayPal wallet), and each customer is followed to their next renewal 30 days later. Metrics: next renewal paid ÷ customers assigned, and the repeat-failure rate among recovered customers.
+- [ ] Same statistics and verdict rules as F5. A neutral or negative result is shown as is.
+
+**Assumptions** (editable, each with an ⓘ citing its source; never tuned to force a win)
+
+| Assumption | Default | Source |
+|---|---|---|
+| Customers who complete the card-only update page | 25% | No public benchmark found; enter your own |
+| Relative lift from adding a PayPal button | +9% | Kofax independent A/B: +8.75% (2Checkout case study); PayPal/Nielsen: ~+10% average (PayPal-commissioned) |
+| Treatment payers who choose PayPal | 30% | No public benchmark; varies by merchant |
+| Next-renewal failure, saved card | 10% | Braintree: acceptable decline ratio ≈ 10% |
+| Next-renewal failure, saved PayPal wallet | 10% (no assumed advantage) | Home Chef reports ~30% fewer failed payments with PayPal (vendor case study, not used as default) |
+
+**Real vs. simulated**
+- [ ] **Real:** a live payment-update page with the PayPal JS SDK. Paying with a sandbox buyer account captures a real PayPal sandbox order and saves the wallet (vault). "Charge next renewal" then charges the saved wallet with no customer present. Both appear in the ledger.
+- [ ] **Simulated:** whether each of the other customers completes payment and their next renewal, from the assumptions above.
 
 ## 9. PayPal capabilities used
 - **Braintree sandbox:** customers, the payment-method vault, subscriptions, transaction sale and search, processor response codes, and merchant accounts per route.

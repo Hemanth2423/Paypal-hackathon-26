@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import AnalystPanel from "@/components/AnalystPanel";
-import NavTabs from "@/components/NavTabs";
+import NavSteps from "@/components/NavSteps";
 import { dataSourceLabel } from "@/lib/run/gateway";
 import "./globals.css";
 
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="bg-navy text-white">
           <nav className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-4" aria-label="Main">
             <span className="text-xl font-bold tracking-tight">SecondMint</span>
-            <NavTabs />
+            <NavSteps />
             <span className="ml-auto text-xs text-white/70">Built on PayPal</span>
           </nav>
         </header>

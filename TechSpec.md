@@ -144,6 +144,20 @@ type Trial = {
   - On a limit error, the panel says so and shows suggested questions. The rest of the app keeps working.
 - **Guardrail tests:** a script sends ≥ 3 adversarial prompts and asserts that each response refuses or carries the disclaimer.
 
+### F7–F8. Progress bar, experiment choice, wallet experiment
+- **Progress bar:** `GET /api/progress` returns `{ connected, experiment, trialStatus, runComplete }`, built from the sync cache, `.data/trial.json`, `.data/wallet.json` and run state. `NavSteps` renders the six steps from it.
+- **Wallet engine** (`src/lib/wallet/`):
+  - **Pure simulation.** Eligible customers come from the retry trial's failure generator (`failuresForDay`). A hard decline is eligible at once. A soft decline is eligible with probability `1 − currentRecovery` (its retries ran out).
+  - **Assignment:** `assignRoute(customerId, wallet.seed, splitB)`.
+  - **Outcomes:** each is decided by a seeded uniform draw against the editable assumptions. The draws are deterministic per seed, so a rerun reproduces the result.
+  - **Statistics:** reuses `newcombeInterval`, `twoProportionZTest` and `decideVerdict` from `src/lib/results`.
+- **Live PayPal (REST sandbox, server-side secret):**
+  - `POST /api/wallet/paypal/order` creates a $29 order with `payment_source.paypal.attributes.vault.store_in_vault = ON_SUCCESS`.
+  - `POST /api/wallet/paypal/capture` captures it and stores the returned vault ID.
+  - `POST /api/wallet/paypal/renewal` creates and captures a new order with `payment_source.paypal.vault_id`, with no buyer present.
+  - Results go to `.data/wallet-live.json`. The browser gets only the client ID, through the JS SDK.
+- **Verified:** the app's OAuth scopes include vault, and a vault-on-success order returns `PAYER_ACTION_REQUIRED` (Nov 12, 2026).
+
 ## 6. Quality and verification (per feature, before the next one starts)
 - **Unit tests:** generator, decline classification, aggregations, statistics, verdict rules, CSV schema, and the AI number checker.
 - **Sandbox smoke test:** a script runs each feature's main path against the real sandbox. For F1 that's seed → sync → counts match the plan.

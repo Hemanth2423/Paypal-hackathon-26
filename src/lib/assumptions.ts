@@ -12,7 +12,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   renewalFailureRate: 0.35, // demo value, above market, so a 3,000-customer merchant generates enough failures
   softShare: 0.85,
   currentRecovery: 0.3,
-  smartUplift: 0.05,
+  smartUplift: 0.07, // Stripe x InVideo: Smart Retries took recovery from 23% to 30%
 };
 
 export const ASSUMPTION_INFO: Record<keyof Assumptions, { label: string; market: string; source: string; min: number; max: number }> = {
@@ -38,9 +38,9 @@ export const ASSUMPTION_INFO: Record<keyof Assumptions, { label: string; market:
     max: 0.9,
   },
   smartUplift: {
-    label: "Extra recovery from smart retries (Route B)",
-    market: "Market: +4 pp (Churnkey) to +10–20 pp (Recurly); Paddle reports up to +17% relative.",
-    source: "Churnkey benchmark; Recurly failed-payment recovery data; Paddle churn prevention.",
+    label: "Smart Retries uplift (Route B, assumed)",
+    market: "Real-world: Stripe Smart Retries raised InVideo's failed-renewal recovery from 23% to 30% (+7 pp). Market range: +4 pp (Churnkey) to +10–20 pp (Recurly).",
+    source: "Stripe customer story: InVideo (stripe.com/customers/invideo). Churnkey and Recurly recovery benchmarks.",
     min: 0,
     max: 0.3,
   },
