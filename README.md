@@ -50,6 +50,7 @@ So the trial's result in this demo reflects these market-based assumptions. It i
 - **Real:**
   - The PayPal button on `/wallet` runs a live PayPal sandbox checkout that saves the wallet (vault).
   - "Charge next renewal" then charges that saved wallet with no customer present.
+  - **Save without paying:** "Save PayPal wallet (no payment)" uses PayPal's Vault setup-token flow. The buyer approves on PayPal, then the server exchanges the token for a saved wallet and confirms it with PayPal. Verified on Nov 12, 2026: wallet saved (`VAULTED`), then the next renewal was charged to it with no customer present (`COMPLETED`).
   - Log in with a PayPal sandbox **personal** (buyer) account.
 - **Assumed:** whether the simulated customers pay. Each assumption has an ⓘ with its source; where no public benchmark exists, it says so.
 - **Setup:** add `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (REST sandbox app) to `.env`.
