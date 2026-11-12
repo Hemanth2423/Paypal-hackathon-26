@@ -5,14 +5,20 @@ import { applyConfig, deleteTrial, loadTrial, newTrial, preview, saveTrial, type
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+let previewMemo: { key: string; preview: unknown } | null = null;
+
 function respond(trial: Trial) {
   const cache = loadCache();
   if (!cache) return Response.json({ empty: true });
   const asOf = cache.summary.historyEnd ?? cache.summary.syncedAt.slice(0, 10);
   const invoices = buildInvoices(cache.transactions, asOf);
+  const key = JSON.stringify([cache.summary.syncedAt, trial.seed, trial.splitB, trial.lengthDays, trial.recoveryWindowDays, trial.assumptions, trial.policy]);
+  if (previewMemo?.key === key) return Response.json({ trial, preview: previewMemo.preview });
   const perWeek = computeDiagnostic(invoices, {}, asOf).stakes.eligiblePerWeek;
   const customerIds = cache.customerIds ?? [...new Set(invoices.map((i) => i.customerId))];
-  return Response.json({ trial, preview: preview(trial, customerIds, invoices, perWeek) });
+  const p = preview(trial, customerIds, invoices, perWeek);
+  previewMemo = { key, preview: p };
+  return Response.json({ trial, preview: p });
 }
 
 // Current trial, or a fresh unsaved draft.

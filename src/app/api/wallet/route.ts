@@ -11,9 +11,13 @@ export const dynamic = "force-dynamic";
 // The plan shown before the start and the run use the same start date, so the pre-registered groups are the ones measured.
 const startOf = (t: WalletTrial) => t.createdAt.slice(0, 10);
 
+let walletMemo: { key: string; plan: unknown; report: unknown } | null = null;
+
 function respond(t: WalletTrial) {
   const cache = loadCache();
   if (!cache) return Response.json({ empty: true });
+  const key = JSON.stringify([cache.summary.syncedAt, t.id, t.seed, t.status, t.splitB, t.lengthDays, t.assumptions, activeAssumptions()]);
+  if (walletMemo?.key === key) return Response.json({ trial: t, plan: walletMemo.plan, report: walletMemo.report, live: loadLive(), paypalClientId: process.env.PAYPAL_CLIENT_ID?.trim() ?? null });
   const ids = cache.customerIds;
   const eligible = eligibleCustomers(ids, t, startOf(t));
   const treatment = eligible.filter((e) => assignRoute(e.customerId, t.seed, t.splitB) === "B").length;
@@ -27,6 +31,7 @@ function respond(t: WalletTrial) {
     retryAssumptions: activeAssumptions(),
   };
   const report = t.status === "complete" ? walletReport(simulateWallet(ids, t, startOf(t)), t) : null;
+  walletMemo = { key, plan, report };
   return Response.json({ trial: t, plan, report, live: loadLive(), paypalClientId: process.env.PAYPAL_CLIENT_ID?.trim() ?? null });
 }
 

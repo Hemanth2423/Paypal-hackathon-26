@@ -1,7 +1,7 @@
 // Leak Diagnostic engine (F2): turns the synced Braintree transactions into invoices, dashboard sections and CSV.
 // Pure functions over the sync cache, so the dashboard, CSV and AI analyst all read the same numbers.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { seedConfig } from "../../config/seed.config";
 import { EXCESS_RETRY_FEE, ruleFor } from "./declines";
 import type { SyncCache, SyncedTransaction } from "./sync";
@@ -47,13 +47,32 @@ export type TableFilter = { reason?: string; type?: string; status?: string };
 
 const planByPrice = new Map(seedConfig.plans.map((p) => [p.price.toFixed(2), p.key]));
 
+// The sync cache is large (~23 MB at 10K customers): parse it once and reuse it until the next sync rewrites the file.
+let cacheMemo: { mtime: number; cache: SyncCache } | null = null;
 export function loadCache(): SyncCache | null {
   if (!existsSync(CACHE_FILE)) return null;
-  return JSON.parse(readFileSync(CACHE_FILE, "utf8")) as SyncCache;
+  const mtime = statSync(CACHE_FILE).mtimeMs;
+  if (cacheMemo?.mtime === mtime) return cacheMemo.cache;
+  cacheMemo = { mtime, cache: JSON.parse(readFileSync(CACHE_FILE, "utf8")) as SyncCache };
+  return cacheMemo.cache;
 }
+
+// Built invoices per transaction list (one per sync) and settings; callers treat them as read-only.
+const invoiceMemo = new WeakMap<object, Map<string, Invoice[]>>();
 
 // windowDays: the recovery window. The Diagnostic uses 14; a trial passes its own setting.
 export function buildInvoices(txns: SyncedTransaction[], asOf: string, windowDays = RECOVERY_WINDOW_DAYS): Invoice[] {
+  const key = `${asOf}|${windowDays}|${txns.length}`; // length: the trial ledger list grows during a run
+  const byTxns = invoiceMemo.get(txns) ?? new Map<string, Invoice[]>();
+  const hit = byTxns.get(key);
+  if (hit) return hit;
+  const built = buildInvoicesUncached(txns, asOf, windowDays);
+  byTxns.set(key, built);
+  invoiceMemo.set(txns, byTxns);
+  return built;
+}
+
+function buildInvoicesUncached(txns: SyncedTransaction[], asOf: string, windowDays: number): Invoice[] {
   const groups = new Map<string, SyncedTransaction[]>();
   for (const t of txns) {
     const id = t.custom.sm_invoice_id;

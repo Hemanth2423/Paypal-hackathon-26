@@ -5,6 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type braintree from "braintree";
 import { getGateway, toConnectError, verifyCredentials } from "./braintree";
+import { loadCache } from "./diagnostic";
 import { ID_PREFIX } from "./generator";
 import { runPool, withRetry } from "./pool";
 
@@ -145,9 +146,8 @@ export async function syncFromBraintree(emit: (e: SyncEvent) => void): Promise<v
 }
 
 export function readSyncSummary(): SyncSummary | null {
-  if (!existsSync(CACHE_FILE)) return null;
   try {
-    return (JSON.parse(readFileSync(CACHE_FILE, "utf8")) as SyncCache).summary;
+    return loadCache()?.summary ?? null;
   } catch {
     return null;
   }
