@@ -9,13 +9,14 @@ Product spec: [Product.md](Product.md).
 2. **Custom fields.** In the sandbox Control Panel → Settings → Processing → Custom Fields, add these seven fields, each set to **Store and pass back**:
    `sm_invoice_id`, `sm_subscription_id`, `sm_billing_date`, `sm_attempt_at`, `sm_attempt_no`, `sm_invoice_amount`, `sm_route`.
    They carry the simulated billing history on each sandbox transaction.
-3. **Install and seed.**
+3. **Install and seed.** First turn off **Duplicate Transaction Checking** in the sandbox Control Panel. With it on, Braintree rejects most of the seed's subscriptions as duplicates.
    ```bash
    npm install
    npm run seed
    ```
-   The seed creates the demo SaaS merchant in your sandbox: 3 plans, 1,000 customers with vaulted test cards and subscriptions, and about 90 days of failed renewals with retries, recoveries, and a few refunds (roughly 10 minutes). If it stops, run it again; it resumes where it left off.
-4. **Run.**
+   The seed creates the demo SaaS merchant in your sandbox: 3 plans, 10,000 customers with vaulted test cards and subscriptions, and about 90 days of failed renewals. It takes about 2 hours. For a 10-minute seed, set `customers: 1000` in `config/seed.config.ts` first. If it stops, run it again. It resumes where it left off.
+4. **AI.** Set `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` in `.env` to any OpenAI-compatible endpoint. Without them the app shows template summaries and the AI analyst is off.
+5. **Run.**
    ```bash
    npm run dev
    ```
@@ -51,9 +52,10 @@ So the trial's result in this demo reflects these market-based assumptions. It i
   - The PayPal button on `/wallet` runs a live PayPal sandbox checkout that saves the wallet (vault).
   - "Charge next renewal" then charges that saved wallet with no customer present.
   - **Save without paying:** "Save PayPal wallet (no payment)" uses PayPal's Vault setup-token flow. The buyer approves on PayPal, then the server exchanges the token for a saved wallet and confirms it with PayPal. Verified on Nov 12, 2026: wallet saved (`VAULTED`), then the next renewal was charged to it with no customer present (`COMPLETED`).
-  - Log in with a PayPal sandbox **personal** (buyer) account.
+  - Log in with a US PayPal sandbox **personal** (buyer) account. A non-US buyer failed for us with a currency error.
 - **Assumed:** whether the simulated customers pay. Each assumption has an ⓘ with its source; where no public benchmark exists, it says so.
-- **Setup:** add `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (REST sandbox app) to `.env`.
+- **Setup:** add `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (REST sandbox app) to `.env`. In the PayPal developer dashboard, turn on **Save payment methods** for that app, or the wallet won't be saved.
+- **Result in this demo:** inconclusive at 10,000 customers. The assumed gain is about 2 points, and this test can detect about 5. A reliable answer needs about 8,000 customers per group, and the Braintree sandbox search stops at 10,000 customers.
 
 ## Tools used
 
