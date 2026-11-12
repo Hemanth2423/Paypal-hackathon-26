@@ -1,4 +1,4 @@
-import { appendLive, captureOrder, chargeSavedWallet, createOrder, loadLive, paypalConfigured } from "@/lib/wallet/paypal";
+import { appendLive, captureOrder, chargeSavedWallet, createOrder, findSavedWallet, idToken, loadLive, paypalConfigured } from "@/lib/wallet/paypal";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +10,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ action: string
   if (!paypalConfigured()) return Response.json({ error: "PayPal isn't configured: add PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET to .env." }, { status: 503 });
   const { action } = await ctx.params;
   try {
+    if (action === "id-token") return Response.json({ idToken: await idToken() });
     if (action === "order") return Response.json({ id: await createOrder(AMOUNT) });
     if (action === "capture") {
       const { orderId } = (await req.json()) as { orderId?: string };
@@ -19,8 +20,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ action: string
       return Response.json(e);
     }
     if (action === "renewal") {
-      const vaultId = [...loadLive()].reverse().find((e) => e.kind === "payment" && e.vaultId)?.vaultId;
-      if (!vaultId) return Response.json({ error: "No saved wallet yet. Pay with PayPal first." }, { status: 400 });
+      const payments = [...loadLive()].reverse().filter((e) => e.kind === "payment");
+      let vaultId = payments.find((e) => e.vaultId)?.vaultId ?? null;
+      // Saving may have finished after the payment: look it up by the PayPal customer ID.
+      const customerId = payments.find((e) => e.customerId)?.customerId;
+      if (!vaultId && customerId) vaultId = await findSavedWallet(customerId, 2);
+      if (!vaultId) return Response.json({ error: "No saved wallet yet. Pay with PayPal first; if you did, PayPal didn't save the wallet (see the payment's save status)." }, { status: 400 });
       const e = await chargeSavedWallet(vaultId, AMOUNT);
       appendLive(e);
       return Response.json(e);

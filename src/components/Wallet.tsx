@@ -47,7 +47,12 @@ function LivePayPal({ clientId, live, onChange }: { clientId: string | null; liv
           onApprove: async (d: { orderID: string }) => {
             const r = await fetch("/api/wallet/paypal/capture", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: d.orderID }) });
             const j = await r.json();
-            setMsg(r.ok ? `Paid $${j.amount} with PayPal (order ${j.orderId}). ${j.vaultId ? "Wallet saved for future renewals." : "Wallet was not saved."}` : j.error);
+            setMsg(
+              !r.ok
+                ? j.error
+                : `Paid $${j.amount} with PayPal (order ${j.orderId}). ` +
+                    (j.vaultId ? "Wallet saved for future renewals." : j.vaultStatus === "APPROVED" ? "PayPal is still saving the wallet; try the renewal in a minute." : "PayPal did not save the wallet (no save status returned)."),
+            );
             onChange();
           },
           onError: (e: Error) => setMsg(`PayPal error: ${e.message}`),
@@ -55,11 +60,19 @@ function LivePayPal({ clientId, live, onChange }: { clientId: string | null; liv
         .render(ref.current);
     };
     if (window.paypal) return render();
-    const s = document.createElement("script");
-    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&intent=capture&components=buttons`;
-    s.onload = render;
-    s.onerror = () => setMsg("Couldn't load PayPal. Check your connection.");
-    document.body.appendChild(s);
+    // Saving a wallet with a purchase needs a fresh ID token on the script tag (PayPal JS SDK v5).
+    fetch("/api/wallet/paypal/id-token", { method: "POST" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (!j.idToken) throw new Error(j.error ?? "No ID token");
+        const s = document.createElement("script");
+        s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&intent=capture&components=buttons`;
+        s.setAttribute("data-user-id-token", j.idToken);
+        s.onload = render;
+        s.onerror = () => setMsg("Couldn't load PayPal. Check your connection.");
+        document.body.appendChild(s);
+      })
+      .catch((e) => setMsg(`PayPal setup failed: ${(e as Error).message}`));
   }, [clientId, onChange]);
 
   async function renew() {
@@ -94,6 +107,7 @@ function LivePayPal({ clientId, live, onChange }: { clientId: string | null; liv
           {live.map((e) => (
             <li key={e.orderId + e.at}>
               {new Date(e.at).toLocaleTimeString()} · {e.kind === "payment" ? "Payment" : "Next renewal"} · ${e.amount} · {e.status} · order {e.orderId}
+              {e.kind === "payment" && ` · wallet ${e.vaultId ? "saved" : (e.vaultStatus ?? "not saved")}`}
             </li>
           ))}
         </ul>
